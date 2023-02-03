@@ -11,6 +11,8 @@ package driver
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/edgexfoundry/device-opcua-go/internal/config"
 	sdkModel "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
@@ -103,7 +105,26 @@ func makeReadRequest(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*
 
 	// make new result
 	reading := resp.Results[0].Value.Value()
-	return newResult(req, reading)
+	result, err := newResult(req, reading)
+
+	// Try to get the sourcetime timestamp from the result since it is the closest timestamp to the event source. If not applicable, use servertime or the current time.
+	if err == nil {
+		var sourceTime = resp.Results[0].SourceTimestamp.UnixNano() / int64(time.Millisecond)
+		if sourceTime == 0 {
+			var serverTime = resp.Results[0].ServerTimestamp.UnixNano() / int64(time.Millisecond)
+			if serverTime == 0 {
+				result.Origin = time.Now().UnixNano() / int64(time.Millisecond)
+				log.Default().Println("Set Origin to edgeX timestamp ", result.Origin, " when reading datapoint ", result.DeviceResourceName)
+			} else {
+				result.Origin = serverTime
+				log.Default().Println("Set Origin to ServerTime timestamp ", result.Origin, " when reading datapoint", result.DeviceResourceName)
+			}
+		} else {
+			result.Origin = sourceTime
+			log.Default().Println("Set Origin to SourceTime timestamp ", result.Origin, " when reading datapoint", result.DeviceResourceName)
+		}
+	}
+	return result, err
 }
 
 func makeMethodCall(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*sdkModel.CommandValue, error) {
