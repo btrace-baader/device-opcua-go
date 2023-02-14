@@ -16,8 +16,6 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
-	"strconv"
-	"time"
 )
 
 // HandleReadCommands triggers a protocol Read operation for the specified device.
@@ -66,7 +64,7 @@ func (d *Driver) handleReadCommandRequest(deviceClient *opcua.Client, req sdkMod
 	_, isMethod := req.Attributes[METHOD]
 
 	if isMethod {
-		result, err = makeMethodCall(deviceClient, req)
+		result, err = d.makeMethodCall(deviceClient, req)
 		d.Logger.Infof("Method command finished: %v", result)
 	} else {
 		result, err = d.makeReadRequest(deviceClient, req)
@@ -78,6 +76,7 @@ func (d *Driver) handleReadCommandRequest(deviceClient *opcua.Client, req sdkMod
 
 func (d *Driver) makeReadRequest(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*sdkModel.CommandValue, error) {
 	nodeID, err := getNodeID(req.Attributes, NODE)
+	d.Logger.Infof("enter makeReadREquest: ")
 	if err != nil {
 		return nil, fmt.Errorf("Driver.handleReadCommands: %v", err)
 	}
@@ -104,29 +103,20 @@ func (d *Driver) makeReadRequest(deviceClient *opcua.Client, req sdkModel.Comman
 
 	// make new result
 	reading := resp.Results[0].Value.Value()
-	result, err := newResult(req, reading)
 
-	// Try to get the sourcetime timestamp from the result since it is the closest timestamp to the event source. If not applicable, use servertime or the current time.
-	if err == nil {
-		var tm time.Time
-		if !resp.Results[0].SourceTimestamp.IsZero() {
-			tm = resp.Results[0].SourceTimestamp
-		} else if !resp.Results[0].ServerTimestamp.IsZero() {
-			tm = resp.Results[0].ServerTimestamp
-		} else {
-			tm = time.Now()
-		}
-		var sourceTimestamp string = strconv.FormatInt(tm.UnixNano()/int64(time.Millisecond), 10)
-		result.Tags["source timestamp"] = sourceTimestamp
-		d.Logger.Infof("Set source timestamp to: ", sourceTimestamp)
-	}
+	d.Logger.Infof("enter makeReadREquest-newresult: ")
+	result, err := d.newResult(req, reading)
+
+	// get source timestamp
+	sourceTimeStamp := extractSourceTimestamp(resp.Results[0])
+	result.Tags["source timestamp"] = sourceTimeStamp
 
 	return result, err
 }
 
-func makeMethodCall(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*sdkModel.CommandValue, error) {
+func (d *Driver) makeMethodCall(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*sdkModel.CommandValue, error) {
 	var inputs []*ua.Variant
-
+	d.Logger.Infof("enter makeMethodCall: ")
 	objectID, err := getNodeID(req.Attributes, OBJECT)
 	if err != nil {
 		return nil, fmt.Errorf("Driver.handleReadCommands: %v", err)
@@ -169,6 +159,11 @@ func makeMethodCall(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*s
 	if resp.StatusCode != ua.StatusOK {
 		return nil, fmt.Errorf("Driver.handleReadCommands: Method status not OK: %v", resp.StatusCode)
 	}
+	result, err := d.newResult(req, resp.OutputArguments[0].Value())
 
-	return newResult(req, resp.OutputArguments[0].Value())
+	// get source timestamp
+	sourceTimeStamp := extractSourceTimestamp(resp.OutputArguments[0].DataValue())
+	result.Tags["source timestamp"] = sourceTimeStamp
+
+	return result, err
 }
