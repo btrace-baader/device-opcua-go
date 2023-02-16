@@ -207,8 +207,8 @@ func (d *Driver) onIncomingDataReceived(data interface{}, nodeResourceName strin
 	}
 
 	result, err := newResult(req, reading)
-	sourceTimeStamp := extractSourceTimestamp(value.DataValue())
-	result.Tags["source timestamp"] = sourceTimeStamp.String()
+	sourceTimestamp := extractSourceTimestamp(value.DataValue())
+	result.Tags["source timettamp"] = sourceTimestamp.String()
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Incoming reading ignored. name=%v deviceResource=%v value=%v", deviceName, nodeResourceName, data)
 		return nil
