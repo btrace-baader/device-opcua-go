@@ -105,7 +105,7 @@ func newResult(req sdkModel.CommandRequest, reading interface{}) (*sdkModel.Comm
 	return result, err
 }
 
-// Gets either the source timestamp, server timestamp from a read value, or sets it to the current time
+// Gets either the source timestamp, server timestamp from a read value, or sets it to the current time.
 func extractSourceTimestamp(value *ua.DataValue) time.Time {
 	var tm time.Time
 	if !value.SourceTimestamp.IsZero() {
