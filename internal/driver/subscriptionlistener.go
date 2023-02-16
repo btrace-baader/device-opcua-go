@@ -176,11 +176,9 @@ func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, dev
 func (d *Driver) handleDataChange(dcn *ua.DataChangeNotification) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.Logger.Infof("enter handleDataChange: ")
 	for _, item := range dcn.MonitoredItems {
 		data := item.Value.Value.Value()
 		value := item.Value.Value
-		d.Logger.Infof("Sgot value: ", value.DataValue().SourceTimestamp)
 		nodeName := d.resourceMap[item.ClientHandle]
 		if err := d.onIncomingDataReceived(data, nodeName, value); err != nil {
 			d.Logger.Errorf("%v", err)
@@ -208,9 +206,9 @@ func (d *Driver) onIncomingDataReceived(data interface{}, nodeResourceName strin
 		Type:               deviceResource.Properties.ValueType,
 	}
 
-	result, err := d.newResult(req, reading)
+	result, err := newResult(req, reading)
 	sourceTimeStamp := extractSourceTimestamp(value.DataValue())
-	result.Tags["source timestamp"] = sourceTimeStamp
+	result.Tags["source timestamp"] = sourceTimeStamp.String()
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Incoming reading ignored. name=%v deviceResource=%v value=%v", deviceName, nodeResourceName, data)
 		return nil

@@ -76,7 +76,7 @@ func (d *Driver) handleReadCommandRequest(deviceClient *opcua.Client, req sdkMod
 
 func (d *Driver) makeReadRequest(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*sdkModel.CommandValue, error) {
 	nodeID, err := getNodeID(req.Attributes, NODE)
-	d.Logger.Infof("enter makeReadREquest: ")
+
 	if err != nil {
 		return nil, fmt.Errorf("Driver.handleReadCommands: %v", err)
 	}
@@ -104,12 +104,11 @@ func (d *Driver) makeReadRequest(deviceClient *opcua.Client, req sdkModel.Comman
 	// make new result
 	reading := resp.Results[0].Value.Value()
 
-	d.Logger.Infof("enter makeReadREquest-newresult: ")
-	result, err := d.newResult(req, reading)
+	result, err := newResult(req, reading)
 
 	// get source timestamp
 	sourceTimeStamp := extractSourceTimestamp(resp.Results[0])
-	result.Tags["source timestamp"] = sourceTimeStamp
+	result.Tags["source timestamp"] = sourceTimeStamp.String()
 
 	return result, err
 }
@@ -159,11 +158,11 @@ func (d *Driver) makeMethodCall(deviceClient *opcua.Client, req sdkModel.Command
 	if resp.StatusCode != ua.StatusOK {
 		return nil, fmt.Errorf("Driver.handleReadCommands: Method status not OK: %v", resp.StatusCode)
 	}
-	result, err := d.newResult(req, resp.OutputArguments[0].Value())
+	result, err := newResult(req, resp.OutputArguments[0].Value())
 
 	// get source timestamp
 	sourceTimeStamp := extractSourceTimestamp(resp.OutputArguments[0].DataValue())
-	result.Tags["source timestamp"] = sourceTimeStamp
+	result.Tags["source timestamp"] = sourceTimeStamp.String()
 
 	return result, err
 }

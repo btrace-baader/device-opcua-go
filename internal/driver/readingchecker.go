@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/gopcua/opcua/ua"
 	"math"
-	"strconv"
 	"time"
 
 	sdkModel "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
@@ -18,7 +17,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-func (d *Driver) newResult(req sdkModel.CommandRequest, reading interface{}) (*sdkModel.CommandValue, error) {
+func newResult(req sdkModel.CommandRequest, reading interface{}) (*sdkModel.CommandValue, error) {
 	var result = &sdkModel.CommandValue{}
 	var err error
 	castError := "fail to parse %v reading, %v"
@@ -98,15 +97,16 @@ func (d *Driver) newResult(req sdkModel.CommandRequest, reading interface{}) (*s
 
 	result, err = sdkModel.NewCommandValue(req.DeviceResourceName, req.Type, val)
 	if err != nil {
-
-		result.Origin = time.Now().UnixNano() / int64(time.Millisecond)
+		return nil, err
 	}
+
+	result.Origin = time.Now().UnixNano() / int64(time.Millisecond)
 
 	return result, err
 }
 
 // Gets either the source timestamp, server timestamp from a read value, or sets it to the current time
-func extractSourceTimestamp(value *ua.DataValue) string {
+func extractSourceTimestamp(value *ua.DataValue) time.Time {
 	var tm time.Time
 	if !value.SourceTimestamp.IsZero() {
 		tm = value.SourceTimestamp
@@ -115,9 +115,8 @@ func extractSourceTimestamp(value *ua.DataValue) string {
 	} else {
 		tm = time.Now()
 	}
-	var sourceTimestamp string = strconv.FormatInt(tm.UnixNano()/int64(time.Millisecond), 10)
 
-	return sourceTimestamp
+	return time.Unix(tm.UnixNano()/int64(time.Millisecond), 0)
 }
 
 // checkValueInRange checks value range is valid
