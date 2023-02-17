@@ -115,7 +115,6 @@ func (d *Driver) makeReadRequest(deviceClient *opcua.Client, req sdkModel.Comman
 
 func (d *Driver) makeMethodCall(deviceClient *opcua.Client, req sdkModel.CommandRequest) (*sdkModel.CommandValue, error) {
 	var inputs []*ua.Variant
-	d.Logger.Infof("enter makeMethodCall: ")
 	objectID, err := getNodeID(req.Attributes, OBJECT)
 	if err != nil {
 		return nil, fmt.Errorf("Driver.handleReadCommands: %v", err)
