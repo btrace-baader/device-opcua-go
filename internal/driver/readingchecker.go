@@ -108,15 +108,19 @@ func newResult(req sdkModel.CommandRequest, reading interface{}) (*sdkModel.Comm
 // Gets either the source timestamp, server timestamp from a read value, or sets it to the current time.
 func extractSourceTimestamp(value *ua.DataValue) time.Time {
 	var tm time.Time
-	if !value.SourceTimestamp.IsZero() {
-		tm = value.SourceTimestamp
-	} else if !value.ServerTimestamp.IsZero() {
-		tm = value.ServerTimestamp
+	if value != nil {
+		if !value.SourceTimestamp.IsZero() {
+			tm = value.SourceTimestamp
+		} else if !value.ServerTimestamp.IsZero() {
+			tm = value.ServerTimestamp
+		} else {
+			tm = time.Now()
+		}
 	} else {
 		tm = time.Now()
 	}
 
-	return time.Unix(tm.UnixNano()/int64(time.Millisecond), 0)
+	return tm
 }
 
 // checkValueInRange checks value range is valid
