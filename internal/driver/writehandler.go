@@ -10,7 +10,10 @@ package driver
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/edgexfoundry/device-opcua-go/internal/config"
 	sdkModel "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
@@ -36,8 +39,44 @@ func (d *Driver) HandleWriteCommands(deviceName string, protocols map[string]mod
 		return err
 	}
 
+	endpoints, err := opcua.GetEndpoints(endpoint)
+	if err != nil {
+		d.Logger.Error("OPC GetEndpoints: %w", err)
+	}
+	credentials, err := getCredentials(d.serviceConfig.OPCUAServer.CredentialsPath)
+	if err != nil {
+		d.Logger.Error("getCredentials: %w", err)
+	}
+
+	username := credentials.Username
+	password := credentials.Password
+	policy := ua.SecurityPolicyURIBasic256Sha256
+	mode := ua.MessageSecurityModeSignAndEncrypt
+
+	ep := opcua.SelectEndpoint(endpoints, policy, mode)
+	c, err := generateCert() // This is where you generate the certificate
+	if err != nil {
+		d.Logger.Error("generateCert: %w", err)
+	}
+
+	pk, ok := c.PrivateKey.(*rsa.PrivateKey) // This is where you set the private key
+	if !ok {
+		log.Print("invalid private key")
+	}
+
+	cert := c.Certificate[0]
+
+	opts := []opcua.Option{
+		opcua.SecurityPolicy(policy),
+		opcua.SecurityMode(mode),
+		opcua.PrivateKey(pk),
+		opcua.Certificate(cert),                // Set the certificate for the OPC UA Client
+		opcua.AuthUsername(username, password), // Use this if you are using username and password
+		opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeUserName),
+		opcua.SessionTimeout(30 * time.Minute),
+	}
 	ctx := context.Background()
-	client := opcua.NewClient(endpoint, opcua.SecurityMode(ua.MessageSecurityModeNone))
+	client := opcua.NewClient(d.serviceConfig.OPCUAServer.Endpoint, opts...)
 	if err := client.Connect(ctx); err != nil {
 		d.Logger.Warnf("Driver.HandleWriteCommands: Failed to connect OPCUA client, %s", err)
 		return err
