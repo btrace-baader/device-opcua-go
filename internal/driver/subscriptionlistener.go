@@ -10,13 +10,10 @@ package driver
 
 import (
 	"context"
-	"crypto/rsa"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
-	"github.com/edgexfoundry/device-opcua-go/internal/config"
 	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
 	"github.com/edgexfoundry/device-sdk-go/v2/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
@@ -100,49 +97,8 @@ func (d *Driver) startSubscriptionListener() error {
 }
 
 func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
-
-	endpoint, xerr := config.FetchEndpoint(device.Protocols)
-	if xerr != nil {
-		return nil, xerr
-	}
-
-	availableServerEndpoints, err := opcua.GetEndpoints(endpoint)
-	if err != nil {
-		d.Logger.Error("OPC GetEndpoints: %w", err)
-	}
-	credentials, err := getCredentials(d.serviceConfig.OPCUAServer.CredentialsPath)
-	if err != nil {
-		d.Logger.Error("getCredentials: %w", err)
-	}
-
-	username := credentials.Username
-	password := credentials.Password
-	policy := ua.SecurityPolicyURIBasic256Sha256
-	mode := ua.MessageSecurityModeSignAndEncrypt
-
-	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
-	c, err := generateCert() // This is where you generate the certificate
-	if err != nil {
-		d.Logger.Error("generateCert: %w", err)
-	}
-
-	pk, ok := c.PrivateKey.(*rsa.PrivateKey) // This is where you set the private key
-	if !ok {
-		log.Print("invalid private key")
-	}
-
-	cert := c.Certificate[0]
-
-	opts := []opcua.Option{
-		opcua.SecurityPolicy(policy),
-		opcua.SecurityMode(mode),
-		opcua.PrivateKey(pk),
-		opcua.Certificate(cert),                // Set the certificate for the OPC UA Client
-		opcua.AuthUsername(username, password), // Use this if you are using username and password
-		opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeUserName),
-		opcua.SessionTimeout(30 * time.Minute),
-	}
-	return opcua.NewClient(ep.EndpointURL, opts...), nil
+	opts := d.createClientOptions()
+	return opcua.NewClient(d.serviceConfig.OPCUAServer.Endpoint, opts...), nil
 }
 
 func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, deviceName string) error {
