@@ -106,7 +106,7 @@ func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
 		return nil, xerr
 	}
 
-	endpoints, err := opcua.GetEndpoints(endpoint)
+	availableServerEndpoints, err := opcua.GetEndpoints(endpoint)
 	if err != nil {
 		d.Logger.Error("OPC GetEndpoints: %w", err)
 	}
@@ -120,7 +120,7 @@ func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
 	policy := ua.SecurityPolicyURIBasic256Sha256
 	mode := ua.MessageSecurityModeSignAndEncrypt
 
-	ep := opcua.SelectEndpoint(endpoints, policy, mode)
+	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
 	c, err := generateCert() // This is where you generate the certificate
 	if err != nil {
 		d.Logger.Error("generateCert: %w", err)

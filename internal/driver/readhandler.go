@@ -46,7 +46,7 @@ func (d *Driver) HandleReadCommands(deviceName string, protocols map[string]mode
 
 	d.Logger.Debugf("Driver.HandleReadCommands: protocols: %v resource: %v attributes: %v", protocols, reqs[0].DeviceResourceName, reqs[0].Attributes)
 
-	endpoints, err := opcua.GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
+	availableServerEndpoints, err := opcua.GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
 	if err != nil {
 		d.Logger.Error("OPC GetEndpoints: %w", err)
 	}
@@ -60,7 +60,7 @@ func (d *Driver) HandleReadCommands(deviceName string, protocols map[string]mode
 	policy := ua.SecurityPolicyURIBasic256Sha256
 	mode := ua.MessageSecurityModeSignAndEncrypt
 
-	ep := opcua.SelectEndpoint(endpoints, policy, mode)
+	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
 	c, err := generateCert() // This is where you generate the certificate
 	if err != nil {
 		d.Logger.Error("generateCert: %w", err)

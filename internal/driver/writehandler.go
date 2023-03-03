@@ -39,7 +39,7 @@ func (d *Driver) HandleWriteCommands(deviceName string, protocols map[string]mod
 		return err
 	}
 
-	endpoints, err := opcua.GetEndpoints(endpoint)
+	availableServerEndpoints, err := opcua.GetEndpoints(endpoint)
 	if err != nil {
 		d.Logger.Error("OPC GetEndpoints: %w", err)
 	}
@@ -53,7 +53,7 @@ func (d *Driver) HandleWriteCommands(deviceName string, protocols map[string]mod
 	policy := ua.SecurityPolicyURIBasic256Sha256
 	mode := ua.MessageSecurityModeSignAndEncrypt
 
-	ep := opcua.SelectEndpoint(endpoints, policy, mode)
+	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
 	c, err := generateCert() // This is where you generate the certificate
 	if err != nil {
 		d.Logger.Error("generateCert: %w", err)
