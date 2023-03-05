@@ -48,11 +48,14 @@ func (d *Driver) HandleReadCommands(deviceName string, protocols map[string]mode
 
 	availableServerEndpoints, err := opcua.GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
 	if err != nil {
-		d.Logger.Error("OPC GetEndpoints: %w", err)
+		d.Logger.Error("getEndpoints: %w", err)
+		return nil, err
 	}
+
 	credentials, err := getCredentials(d.serviceConfig.OPCUAServer.CredentialsPath)
 	if err != nil {
 		d.Logger.Error("getCredentials: %w", err)
+		return nil, err
 	}
 
 	username := credentials.Username
