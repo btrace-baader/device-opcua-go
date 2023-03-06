@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
-	"log"
 	"sync"
 	"time"
 
@@ -80,14 +79,16 @@ func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.As
 }
 
 // creates the options to connect with a opcua Client based on the configured options.
-func (d *Driver) createClientOptions() []opcua.Option {
+func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 	availableServerEndpoints, err := opcua.GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
 	if err != nil {
 		d.Logger.Error("OPC GetEndpoints: %w", err)
+		return nil, err
 	}
 	credentials, err := getCredentials(d.serviceConfig.OPCUAServer.CredentialsPath)
 	if err != nil {
 		d.Logger.Error("getCredentials: %w", err)
+		return nil, err
 	}
 
 	username := credentials.Username
@@ -99,11 +100,12 @@ func (d *Driver) createClientOptions() []opcua.Option {
 	c, err := generateCert() // This is where you generate the certificate
 	if err != nil {
 		d.Logger.Error("generateCert: %w", err)
+		return nil, err
 	}
 
 	pk, ok := c.PrivateKey.(*rsa.PrivateKey) // This is where you set the private key
 	if !ok {
-		log.Print("invalid private key")
+		d.Logger.Error("invalid private key")
 	}
 
 	cert = c.Certificate[0]
@@ -117,7 +119,7 @@ func (d *Driver) createClientOptions() []opcua.Option {
 		opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeUserName),
 		opcua.SessionTimeout(30 * time.Minute),
 	}
-	return opts
+	return opts, nil
 }
 
 // Callback function provided to ListenForCustomConfigChanges to update

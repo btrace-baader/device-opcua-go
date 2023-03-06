@@ -27,7 +27,6 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
-	"log"
 	"math/big"
 	"net"
 	"net/url"
@@ -46,50 +45,17 @@ func (d *Driver) HandleReadCommands(deviceName string, protocols map[string]mode
 
 	d.Logger.Debugf("Driver.HandleReadCommands: protocols: %v resource: %v attributes: %v", protocols, reqs[0].DeviceResourceName, reqs[0].Attributes)
 
-	availableServerEndpoints, err := opcua.GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
+	opts, err := d.createClientOptions()
 	if err != nil {
-		d.Logger.Error("getEndpoints: %w", err)
+		d.Logger.Warnf("Driver.HandleReadCommands: Failed to create OPCUA client options, %s", err)
 		return nil, err
-	}
-
-	credentials, err := getCredentials(d.serviceConfig.OPCUAServer.CredentialsPath)
-	if err != nil {
-		d.Logger.Error("getCredentials: %w", err)
-		return nil, err
-	}
-
-	username := credentials.Username
-	password := credentials.Password
-	policy := ua.SecurityPolicyURIBasic256Sha256
-	mode := ua.MessageSecurityModeSignAndEncrypt
-
-	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
-	c, err := generateCert() // This is where you generate the certificate
-	if err != nil {
-		d.Logger.Error("generateCert: %w", err)
-	}
-
-	pk, ok := c.PrivateKey.(*rsa.PrivateKey) // This is where you set the private key
-	if !ok {
-		log.Print("invalid private key")
-	}
-
-	cert := c.Certificate[0]
-
-	opts := []opcua.Option{
-		opcua.SecurityPolicy(policy),
-		opcua.SecurityMode(mode),
-		opcua.PrivateKey(pk),
-		opcua.Certificate(cert),                // Set the certificate for the OPC UA Client
-		opcua.AuthUsername(username, password), // Use this if you are using username and password
-		opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeUserName),
-		opcua.SessionTimeout(30 * time.Minute),
 	}
 
 	ctx := context.Background()
 	client := opcua.NewClient(d.serviceConfig.OPCUAServer.Endpoint, opts...)
 	if err := client.Connect(ctx); err != nil {
 		d.Logger.Error("Driver.HandleReadCommands: Failed to connect OPCUA client, %s", err)
+		return nil, err
 	}
 	defer client.Close()
 

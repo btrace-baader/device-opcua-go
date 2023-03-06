@@ -27,7 +27,12 @@ func (d *Driver) HandleWriteCommands(deviceName string, protocols map[string]mod
 
 	d.Logger.Debugf("Driver.HandleWriteCommands: protocols: %v, resource: %v, parameters: %v", protocols, reqs[0].DeviceResourceName, params)
 
-	opts := d.createClientOptions()
+	opts, err := d.createClientOptions()
+	if err != nil {
+		d.Logger.Warnf("Driver.HandleWriteCommands: Failed to create OPCUA client options, %s", err)
+		return err
+	}
+
 	ctx := context.Background()
 	client := opcua.NewClient(d.serviceConfig.OPCUAServer.Endpoint, opts...)
 	if err := client.Connect(ctx); err != nil {

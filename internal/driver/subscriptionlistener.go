@@ -97,7 +97,12 @@ func (d *Driver) startSubscriptionListener() error {
 }
 
 func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
-	opts := d.createClientOptions()
+	opts, err := d.createClientOptions()
+	if err != nil {
+		d.Logger.Warnf("Driver.getClient: Failed to create OPCUA client options, %s", err)
+		return nil, err
+	}
+
 	return opcua.NewClient(d.serviceConfig.OPCUAServer.Endpoint, opts...), nil
 }
 
