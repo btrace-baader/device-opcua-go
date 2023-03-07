@@ -19,5 +19,5 @@ steps:
 
 - task: Go@0
   inputs:
-    command: 'get'
-    arguments: 'test cmd'
+    command: 'test'
+    arguments: 'cmd'
