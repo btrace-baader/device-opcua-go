@@ -8,6 +8,8 @@ trigger:
 
 pool:
   vmImage: ubuntu-latest
+
+steps:
   
 - task: GoTool@0
   inputs:
