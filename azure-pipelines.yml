@@ -10,6 +10,7 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
+- script: sudo apt-get install libzmq-dev
   
 - task: GoTool@0
   inputs:
@@ -18,4 +19,4 @@ steps:
 - task: Go@0
   inputs:
     command: 'test'
-    arguments: 'cmd'
+    arguments: '-v'
