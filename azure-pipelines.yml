@@ -13,12 +13,36 @@ steps:
 - script: |   
     sudo apt-get update   
     sudo apt-get install libzmq3-dev
-  
+
 - task: GoTool@0
   inputs:
     version: '1.10'
-
+    
 - task: Go@0
   inputs:
+    command: 'get'
+    arguments: '-d'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+- task: Go@0
+  inputs:
+    command: 'build'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+- task: CopyFiles@2  
+  inputs:
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+
+- task: Go@0
+  displayName: Execute build
+  inputs:
+    command: 'build'
+    arguments: '-v'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+- task: Go@0
+  displayName: Execute tests
+  inputs:
     command: 'test'
-    arguments: './cmd/ -v'
+    arguments: '-v ./...'
+    workingDirectory: '$(System.DefaultWorkingDirectory)'
