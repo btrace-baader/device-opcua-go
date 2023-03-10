@@ -10,8 +10,8 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: sudo |
-    sudo apt-get update -y |
+- script: |
+    sudo apt-get update -y
     sudo apt-get install -y libzmq-dev
   
 - task: GoTool@0
