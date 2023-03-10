@@ -16,13 +16,19 @@ steps:
 
 - task: GoTool@0
   inputs:
-    version: '1.10'
+    version: '1.20'
     
+
+steps:
+- script: |   
+    echo $GOPATH
+
 - task: Go@0
   inputs:
     command: 'get'
     arguments: '-d'
     workingDirectory: '$(System.DefaultWorkingDirectory)'
+
 - task: Go@0
   inputs:
     command: 'build'
