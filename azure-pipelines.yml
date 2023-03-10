@@ -41,7 +41,7 @@ steps:
   displayName: Execute build
   inputs:
     command: 'build'
-    arguments: '-v'
+    arguments: '-v ./...'
     workingDirectory: '$(System.DefaultWorkingDirectory)'
 
 - task: Go@0
