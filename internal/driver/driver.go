@@ -78,9 +78,17 @@ func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.As
 	return nil
 }
 
+var (
+	GetEndpoints = opcua.GetEndpoints
+)
+
+var (
+	SelectEndPoint = opcua.SelectEndpoint
+)
+
 // creates the options to connect with a opcua Client based on the configured options.
 func (d *Driver) createClientOptions() ([]opcua.Option, error) {
-	availableServerEndpoints, err := opcua.GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
+	availableServerEndpoints, err := GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
 	if err != nil {
 		d.Logger.Error("OPC GetEndpoints: %w", err)
 		return nil, err
@@ -96,7 +104,7 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 	policy := ua.SecurityPolicyURIBasic256Sha256
 	mode := ua.MessageSecurityModeSignAndEncrypt
 
-	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
+	ep := SelectEndPoint(availableServerEndpoints, policy, mode)
 	c, err := generateCert() // This is where you generate the certificate
 	if err != nil {
 		d.Logger.Error("generateCert: %w", err)

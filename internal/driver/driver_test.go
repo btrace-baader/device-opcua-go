@@ -8,6 +8,7 @@ package driver
 
 import (
 	"context"
+	"github.com/gopcua/opcua/ua"
 	"testing"
 
 	"github.com/edgexfoundry/device-opcua-go/internal/config"
@@ -129,7 +130,55 @@ func TestDriver_RemoveDevice(t *testing.T) {
 		})
 	}
 }
+func TestDriver_CreateClientOptions(t *testing.T) {
+	type args struct {
+		deviceName string
+		protocols  map[string]models.ProtocolProperties
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name:    "OK - options created successfully",
+			args:    args{deviceName: "Test"},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &Driver{
+				Logger: &logger.MockLogger{},
+			}
+			d.serviceConfig = &config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: "127.0.0.1"}}
 
+			GetEndpoints = func(endpoint string) ([]*ua.EndpointDescription, error) {
+				var endpoints []*ua.EndpointDescription
+				ep := &ua.EndpointDescription{
+					EndpointURL:         "",
+					Server:              nil,
+					ServerCertificate:   nil,
+					SecurityMode:        0,
+					SecurityPolicyURI:   "",
+					UserIdentityTokens:  nil,
+					TransportProfileURI: "",
+					SecurityLevel:       0,
+				}
+				endpoints = append(endpoints, ep)
+				return endpoints, nil
+			}
+			opts, err := d.createClientOptions()
+			if len(opts) == 0 {
+				t.Errorf("Driver.CreateClientOptions() returned an empty array")
+			}
+
+			if err != nil != tt.wantErr {
+				t.Errorf("Driver.CreateClientOptions() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
 func TestDriver_Stop(t *testing.T) {
 	type args struct {
 		force bool
