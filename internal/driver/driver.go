@@ -93,7 +93,7 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 
 	username := credentials.Username
 	password := credentials.Password
-	policy := ua.SecurityPolicyURIAes128Sha256RsaOaep
+	policy := ua.FormatSecurityPolicyURI(d.serviceConfig.OPCUAServer.Policy)
 	mode := ua.MessageSecurityModeFromString(d.serviceConfig.OPCUAServer.Mode)
 
 	ep := opcua.SelectEndpoint(availableServerEndpoints, policy, mode)
