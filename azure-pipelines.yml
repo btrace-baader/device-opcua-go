@@ -38,5 +38,5 @@ stages:
         tags: |
           $(tag)
           alpha
-          $(majorMinorPatchVersion)-x
+          $(majorMinorPatchVersion)
           
