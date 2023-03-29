@@ -8,7 +8,7 @@ resources:
 
 variables:
 - name : tag 
-  value: '$(Build.Number)'  
+  value: '$(Build.BuildNumber)'  
 - name: majorMinorPatchVersion
   value: 0.1
 - name: semanticVersion 
