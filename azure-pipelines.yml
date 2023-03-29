@@ -1,6 +1,4 @@
-# Docker
-# Build a Docker image
-# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+name: $(majorMinorPatchVersion)$(semanticVersion)
 
 trigger:
 - develop
@@ -11,10 +9,12 @@ resources:
 variables:
 - name : tag 
   value: '$(Build.BuildId)'
+- name: majorMinorPatchVersion
+  value: 0.1
+- name: semanticVersion 
+  value: $[counter(variables['majorMinorPatchVersion'], 0)]
 - name: DOCKER_REPOSITORY_NAME
-  value: $[replace(replace(variables['Build.SourceBranch'], 'refs/heads/', ''), '/', '_')]
-- name: CONTAINER_REGISTRY
-  value: 'bOneAzureContainerRegistry'
+  value: 'baader/device-opcua-go'
 - name: SERVICE_CONNECTION
   value: 'bOne-platform-azure-container-registry'
 
@@ -37,3 +37,5 @@ stages:
         containerRegistry: $(SERVICE_CONNECTION)
         tags: |
           $(tag)
+          alpha
+          
