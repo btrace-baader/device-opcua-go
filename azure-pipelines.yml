@@ -1,0 +1,39 @@
+# Docker
+# Build a Docker image
+# https://docs.microsoft.com/azure/devops/pipelines/languages/docker
+
+trigger:
+- develop
+
+resources:
+- repo: self
+
+variables:
+- name : tag 
+  value: '$(Build.BuildId)'
+- name: DOCKER_REPOSITORY_NAME
+  value: $[replace(replace(variables['Build.SourceBranch'], 'refs/heads/', ''), '/', '_')]
+- name: CONTAINER_REGISTRY
+  value: 'bOneAzureContainerRegistry'
+- name: SERVICE_CONNECTION
+  value: 'bOne-platform-azure-container-registry'
+
+stages:
+- stage: Build
+  displayName: Build image
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    # Docker image build to acr
+    - task: Docker@2
+      displayName: 'Build and push image to acr'
+      inputs:
+        command: 'buildAndPush'
+        repository: $(DOCKER_REPOSITORY_NAME)
+        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        containerRegistry: $(SERVICE_CONNECTION)
+        tags: |
+          $(tag)
