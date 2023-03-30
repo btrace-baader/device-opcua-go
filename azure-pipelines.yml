@@ -1,4 +1,4 @@
-name: $(majorMinorPatchVersion)$(semanticVersion)
+name: $(majorMinorPatchVersion).$(semanticVersion)
 
 trigger:
 - develop
