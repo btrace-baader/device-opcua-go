@@ -7,8 +7,13 @@ resources:
 - repo: self
 
 variables:
-- name : tag 
-  value: '$(Build.BuildNumber)'  
+- name : tag
+  value: '$(Build.BuildNumber)'
+- name: alphabeticTag
+  ${{ if eq(variables['Build.SourceBranchName'], 'main') }}:
+    value: ''
+  ${{ else }}:
+    value: 'develop'
 - name: majorMinorPatchVersion
   value: 0.1
 - name: semanticVersion 
@@ -22,21 +27,23 @@ stages:
 - stage: Build
   displayName: Build image
   jobs:
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: ubuntu-latest
+#  - job: Build
+#    displayName: Build
+#    pool:
+#      vmImage: ubuntu-latest
+#    steps:
+#    # Docker image build to acr
+#    - task: Docker@2
+#      displayName: 'Build and push image to acr'
+#      inputs:
+#        command: 'buildAndPush'
+#        repository: $(DOCKER_REPOSITORY_NAME)
+#        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+#        containerRegistry: $(SERVICE_CONNECTION)
+#        tags: |
+#          $(tag)
+#          $(alphabeticTag)
+#          $(majorMinorPatchVersion)
+  - job: Bash
     steps:
-    # Docker image build to acr
-    - task: Docker@2
-      displayName: 'Build and push image to acr'
-      inputs:
-        command: 'buildAndPush'
-        repository: $(DOCKER_REPOSITORY_NAME)
-        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
-        containerRegistry: $(SERVICE_CONNECTION)
-        tags: |
-          $(tag)
-          alpha
-          $(majorMinorPatchVersion)
-          
+      - bash: echo $(alphabeticTag)
