@@ -7,6 +7,7 @@ require (
 	github.com/edgexfoundry/go-mod-bootstrap/v2 v2.3.0
 	github.com/edgexfoundry/go-mod-core-contracts/v2 v2.3.0
 	github.com/gopcua/opcua v0.1.13
+	github.com/pkg/errors v0.9.1
 	github.com/spf13/cast v1.4.1
 	github.com/stretchr/testify v1.8.0
 )
@@ -57,7 +58,6 @@ require (
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pebbe/zmq4 v1.2.7 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.1.1 // indirect
