@@ -30,6 +30,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -58,10 +59,10 @@ func createX509Template() x509.Certificate {
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(2023),
 		Subject: pkix.Name{
-			Organization: []string{"Baader.com"},
-			Country:      []string{"DE"},
-			Province:     []string{"Hamburg"},
-			Locality:     []string{"Hamburg"},
+			Organization: []string{driver.serviceConfig.OPCUAServer.CertificateConfig.CertOrganization},
+			Country:      []string{driver.serviceConfig.OPCUAServer.CertificateConfig.CertCountry},
+			Province:     []string{driver.serviceConfig.OPCUAServer.CertificateConfig.CertProvince},
+			Locality:     []string{driver.serviceConfig.OPCUAServer.CertificateConfig.CertLocality},
 		},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
@@ -135,11 +136,19 @@ func ReadClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) (
 		if err != nil {
 			return nil, nil, err
 		}
-		err = os.WriteFile(clientCertFileName, clientCert, 0777)
+
+		var perm int
+		perm, err = strconv.Atoi(driver.serviceConfig.OPCUAServer.CertificateConfig.CertFilePermissions)
+		if err != nil {
+			log.Println("Could not convert permission string to uint:", err)
+			return nil, nil, err
+		}
+
+		err = os.WriteFile(clientCertFileName, clientCert, os.FileMode(perm))
 		if err != nil {
 			return nil, nil, err
 		}
-		err = os.WriteFile(clientKeyFileName, clientKey, 0777)
+		err = os.WriteFile(clientKeyFileName, clientKey, os.FileMode(perm))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -157,8 +166,7 @@ func ReadClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) (
 }
 func CreateSelfSignedClientCertificates(clientName string) ([]byte, []byte, error) {
 	template := createX509Template()
-	bits := 2048
-	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, bits)
+	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, driver.serviceConfig.OPCUAServer.CertificateConfig.CertBits)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -210,8 +218,8 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 
 	// no need to set options if no security policy is set
 	if mode != ua.MessageSecurityModeNone {
-		clientCertFileName := d.serviceConfig.OPCUAServer.CertFile
-		clientKeyFileName := d.serviceConfig.OPCUAServer.KeyFile
+		clientCertFileName := d.serviceConfig.OPCUAServer.CertificateConfig.CertFile
+		clientKeyFileName := d.serviceConfig.OPCUAServer.CertificateConfig.KeyFile
 
 		cert, key, err := ReadCertAndKey(clientCertFileName, clientKeyFileName)
 
