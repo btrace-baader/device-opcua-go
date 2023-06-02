@@ -8,7 +8,7 @@ resources:
 - repo: self
 
 variables:
-# tag section for docker 
+# Tag section for docker
 - name : exactVersionTag
   value: '$(Build.BuildNumber)'
 - name : majorMinorTag
