@@ -11,14 +11,13 @@ package driver
 import (
 	"context"
 	"fmt"
-	"strings"
-	"time"
-
 	sdkModels "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
 	"github.com/edgexfoundry/device-sdk-go/v2/pkg/service"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
+	"strings"
+	"time"
 )
 
 func (d *Driver) startSubscriptionListener() error {
@@ -60,20 +59,19 @@ func (d *Driver) startSubscriptionListener() error {
 	}
 	defer client.Close()
 
-	sub, err := client.Subscribe(
-		&opcua.SubscriptionParameters{
-			Interval: time.Duration(500) * time.Millisecond,
-		}, make(chan *opcua.PublishNotificationData))
+	notifyCh := make(chan *opcua.PublishNotificationData)
+
+	sub, err := client.SubscribeWithContext(ctx, &opcua.SubscriptionParameters{
+		Interval: time.Duration(500) * time.Millisecond,
+	}, notifyCh)
 	if err != nil {
 		return err
 	}
-	defer sub.Cancel()
+	defer sub.Cancel(ctx)
 
 	if err := d.configureMonitoredItems(sub, resources, deviceName); err != nil {
 		return err
 	}
-
-	go sub.Run(ctx) // start Publish loop
 
 	// read from subscription's notification channel until ctx is cancelled
 	for {
@@ -82,7 +80,7 @@ func (d *Driver) startSubscriptionListener() error {
 		case <-ctx.Done():
 			return nil
 			// receive Publish Notification Data
-		case res := <-sub.Notifs:
+		case res := <-notifyCh:
 			if res.Error != nil {
 				d.Logger.Debug(res.Error.Error())
 				continue
@@ -107,6 +105,7 @@ func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
 }
 
 func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, deviceName string) error {
+	d.Logger.Infof("[Incoming listener] Start configuring for reosurces.", resources)
 	ds := service.RunningService()
 	if ds == nil {
 		return fmt.Errorf("[Incoming listener] unable to get running device service")

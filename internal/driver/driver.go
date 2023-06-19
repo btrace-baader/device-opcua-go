@@ -195,7 +195,7 @@ func setClientTemplateOptions(template x509.Certificate, commonName string) x509
 
 // creates the options to connect with a opcua Client based on the configured options.
 func (d *Driver) createClientOptions() ([]opcua.Option, error) {
-	availableServerEndpoints, err := GetEndpoints(d.serviceConfig.OPCUAServer.Endpoint)
+	availableServerEndpoints, err := GetEndpoints(context.Background(), d.serviceConfig.OPCUAServer.Endpoint)
 	if err != nil {
 		d.Logger.Error("OPC GetEndpoints: %w", err)
 		return nil, err
@@ -234,10 +234,16 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 		}
 
 		cert = clientCertificate.Certificate[0]
+		var duration_Milliseconds time.Duration = 50000 * time.Millisecond
 
 		opts = []opcua.Option{
 			opcua.SecurityPolicy(policy),
 			opcua.SecurityMode(mode),
+			opcua.Lifetime(duration_Milliseconds),
+			opcua.SessionTimeout(duration_Milliseconds),
+			opcua.AutoReconnect(true),
+			opcua.ReconnectInterval(time.Second * 2),
+			opcua.RequestTimeout(time.Second * 3),
 			opcua.PrivateKey(pk),
 			opcua.Certificate(cert),                // Set the certificate for the OPC UA Client
 			opcua.AuthUsername(username, password), // Use this if you are using username and password
@@ -246,6 +252,9 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 		}
 	}
 	return opts, nil
+}
+func (d *Driver) Discover() {
+
 }
 
 // Gets the username and password credentials from the configuration.
