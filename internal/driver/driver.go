@@ -250,9 +250,6 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 	}
 	return opts, nil
 }
-func (d *Driver) Discover() {
-
-}
 
 // Gets the username and password credentials from the configuration.
 func (d *Driver) getCredentials(secretPath string) (config.Credentials, error) {
