@@ -13,6 +13,7 @@ import (
 	sdkModel "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
+	"github.com/gopcua/opcua"
 	"github.com/gopcua/opcua/ua"
 	"github.com/pkg/errors"
 	"testing"
@@ -106,7 +107,7 @@ func TestDriver_UpdateDevice(t *testing.T) {
 func TestDriver_CreateClientOptions(t *testing.T) {
 	tests := []struct {
 		name                 string
-		getter               func(endpoint string) ([]*ua.EndpointDescription, error)
+		getter               func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error)
 		certAndKeyReader     func(clientCertFileName, clientKeyFileName string) ([]byte, []byte, error)
 		certKeyPair          func(certPEMBlock []byte, keyPEMBlock []byte) (tls.Certificate, error)
 		serviceConfig        config.ServiceConfig
@@ -115,7 +116,7 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 	}{
 		{
 			name: "OK - options created successfully",
-			getter: func(endpoint string) ([]*ua.EndpointDescription, error) {
+			getter: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
 				var endpoints []*ua.EndpointDescription
 				ep := &ua.EndpointDescription{
 					EndpointURL:         "",
@@ -144,12 +145,12 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 				return cert, nil
 			},
 			serviceConfig:        config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: "127.0.0.1", Policy: "Ba256Sha256", Mode: "SignAndEncrypt"}},
-			expectedResultLength: 7,
+			expectedResultLength: 12,
 			wantErr:              false,
 		},
 		{
 			name: "NOK - options not created when endpoints cannot be fetched",
-			getter: func(endpoint string) ([]*ua.EndpointDescription, error) {
+			getter: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
 				return nil, errors.New("random endpoint error")
 			},
 			expectedResultLength: 0,
@@ -157,7 +158,7 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 		},
 		{
 			name: "OK - options created correctly with no security policy",
-			getter: func(endpoint string) ([]*ua.EndpointDescription, error) {
+			getter: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
 				var endpoints []*ua.EndpointDescription
 				ep := &ua.EndpointDescription{
 					EndpointURL:         "",
