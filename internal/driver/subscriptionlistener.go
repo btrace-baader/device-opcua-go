@@ -57,12 +57,7 @@ func (d *Driver) startSubscriptionListener() error {
 		d.Logger.Warnf("[Incoming listener] Failed to connect OPCUA client, %s", err)
 		return err
 	}
-	defer func(client *opcua.Client) {
-		err := client.Close()
-		if err != nil {
-			d.Logger.Warnf("[Incoming listener] Failed to close OPCUA client connection., %s", err)
-		}
-	}(client)
+	defer CloseClient(d, client)
 
 	notifyCh := make(chan *opcua.PublishNotificationData)
 
@@ -72,12 +67,7 @@ func (d *Driver) startSubscriptionListener() error {
 	if err != nil {
 		return err
 	}
-	defer func(sub *opcua.Subscription, ctx context.Context) {
-		err = sub.Cancel(ctx)
-		if err != nil {
-			d.Logger.Warnf("[Incoming listener] Failed to cancel subscription., %s", err)
-		}
-	}(sub, ctx)
+	defer CancelSubscription(d, sub, ctx)
 
 	// begin continuous client state check
 	go CheckClientState(d, client)
@@ -107,25 +97,23 @@ func (d *Driver) startSubscriptionListener() error {
 	}
 }
 
-// GetClientStateAsString returns enum value of opcua.ConnState as string for logging purpuses
-func GetClientStateAsString(connectionState opcua.ConnState) string {
-	switch connectionState {
-	case opcua.Closed:
-		return "Closed"
-	case opcua.Connecting:
-		return "Connecting"
-	case opcua.Connected:
-		return "Connected"
-	case opcua.Disconnected:
-		return "Disconnected"
-	case opcua.Reconnecting:
-		return "Reconnecting"
-	default:
-		return "connection state " + fmt.Sprint(connectionState) + " is unknown"
+// CloseClient tries to close the client connection
+func CloseClient(d *Driver, client *opcua.Client) {
+	err := client.Close()
+	if err != nil {
+		d.Logger.Warnf("[Incoming listener] Failed to close OPCUA client connection., %s", err)
 	}
 }
 
-// Periodically checks the client state for connection issues.
+// CancelSubscription cancel the subscription
+func CancelSubscription(d *Driver, sub *opcua.Subscription, ctx context.Context) {
+	err := sub.Cancel(ctx)
+	if err != nil {
+		d.Logger.Warnf("[Incoming listener] Failed to cancel subscription., %s", err)
+	}
+}
+
+// CheckClientState Periodically checks the client state for connection issues.
 func CheckClientState(d *Driver, client *opcua.Client) {
 
 	// set to default values to avoid errors when client is nil
@@ -137,13 +125,13 @@ func CheckClientState(d *Driver, client *opcua.Client) {
 
 			if (lastState == opcua.Connected || actualState == opcua.Disconnected) && lastState != actualState {
 				// if you are coming from connected (last state) then log warning
-				d.Logger.Warnf("opc ua client is in connection state %s", GetClientStateAsString(actualState))
+				d.Logger.Warnf("opc ua client is in connection state: Disconnected")
 			} else if actualState == opcua.Connected && lastState != actualState {
 				// if you are in disconnected (actual state) then log info
-				d.Logger.Infof("opc ua client is in connection state %s", GetClientStateAsString(actualState))
+				d.Logger.Infof("opc ua client is in connection state: Connected")
 			} else if actualState == opcua.Reconnecting && actualState == lastState {
 				// if you actual and last state are reconnecting, inform the user that the reconnect is still being tried.
-				d.Logger.Infof("opc ua client is in connection state %s", GetClientStateAsString(actualState))
+				d.Logger.Infof("opc ua client is in connection state: Reconnecting")
 			}
 		}
 		// use configured interval
