@@ -69,6 +69,8 @@ func (d *Driver) startSubscriptionListener() error {
 	}
 	defer sub.Cancel(ctx)
 
+	go GetClientState(d, client)
+
 	if err := d.configureMonitoredItems(sub, resources, deviceName); err != nil {
 		return err
 	}
@@ -94,6 +96,45 @@ func (d *Driver) startSubscriptionListener() error {
 	}
 }
 
+func GetClientStateAsString(connectionState opcua.ConnState) string {
+	switch connectionState {
+	case opcua.Closed:
+		return "Closed"
+	case opcua.Connecting:
+		return "Connecting"
+	case opcua.Connected:
+		return "Connected"
+	case opcua.Disconnected:
+		return "Disconnected"
+	case opcua.Reconnecting:
+		return "Reconnecting"
+	default:
+		return "connection state " + fmt.Sprint(connectionState) + " is unknown"
+	}
+}
+
+func GetClientState(d *Driver, client *opcua.Client) {
+
+	// set to default values, because if client nil results to errors
+	lastState := opcua.Closed
+	actualState := opcua.Closed
+	for {
+		if client != nil {
+			actualState = client.State()
+			// if you are coming from connected (last state) then log warning
+			// if you are in disconnected (actual state) then log warning
+			if (lastState == opcua.Connected || actualState == opcua.Disconnected) && lastState != actualState {
+				d.Logger.Warnf("opc ua client is in connection state %s", GetClientStateAsString(actualState))
+			} else if actualState == opcua.Connected && lastState != actualState {
+				d.Logger.Infof("opc ua client is in connection state %s", GetClientStateAsString(actualState))
+			}
+		}
+		// set here the interval, maybe also variable
+		time.Sleep(100 * time.Millisecond)
+		lastState = actualState
+	}
+}
+
 func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
 	opts, err := d.createClientOptions()
 	if err != nil {
@@ -105,7 +146,7 @@ func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
 }
 
 func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, deviceName string) error {
-	d.Logger.Infof("[Incoming listener] Start configuring for reosurces.", resources)
+	d.Logger.Infof("[Incoming listener] Start configuring for resources.", resources)
 	ds := service.RunningService()
 	if ds == nil {
 		return fmt.Errorf("[Incoming listener] unable to get running device service")

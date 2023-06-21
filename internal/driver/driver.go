@@ -37,6 +37,7 @@ import (
 
 var once sync.Once
 var driver *Driver
+var opcuaclient *opcua.Client
 
 // Driver struct
 type Driver struct {
@@ -102,7 +103,21 @@ func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.As
 	if err := ds.ListenForCustomConfigChanges(&d.serviceConfig.OPCUAServer.Writable, CustomConfigSectionName, d.updateWritableConfig); err != nil {
 		return errors.NewCommonEdgeX(errors.Kind(err), fmt.Sprintf("unable to listen for changes for '%s' custom configuration", CustomConfigSectionName), err)
 	}
+	go startupSubscriptionListener(d)
+
 	return nil
+}
+
+func startupSubscriptionListener(d *Driver) {
+	for {
+		d.Logger.Infof("start subscriber")
+		d.startSubscriber()
+
+		if opcuaclient != nil {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
 
 // GetEndpoints capsules the containing method for easy mocking in unit tests
@@ -155,13 +170,16 @@ func ReadClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) (
 
 		clientCertificate = clientCert
 		privateKey = clientKey
+
+		log.Println("Successfully created certificates, written to file")
 	} else {
 		privateKey, err = os.ReadFile(clientKeyFileName)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		log.Println("Successfully load certificates from file")
 	}
-	println("Successfully load certificates from file")
 	return clientCertificate, privateKey, nil
 }
 func CreateSelfSignedClientCertificates(clientName string) ([]byte, []byte, error) {
@@ -245,7 +263,7 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 			opcua.Certificate(cert),                // Set the certificate for the OPC UA Client
 			opcua.AuthUsername(username, password), // Use this if you are using username and password
 			opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeUserName),
-			opcua.SessionTimeout(30 * time.Minute),
+			opcua.SessionTimeout(10 * time.Second),
 		}
 	}
 	return opts, nil
@@ -299,6 +317,7 @@ func (d *Driver) updateWritableConfig(rawWritableConfig interface{}) {
 
 // Start or restart the subscription listener
 func (d *Driver) startSubscriber() {
+	//subscriptionStartup.Do()
 	err := d.startSubscriptionListener()
 	if err != nil {
 		d.Logger.Errorf("Driver.Initialize: Start incoming data Listener failed: %v", err)
@@ -319,7 +338,6 @@ func (d *Driver) cleanup() {
 func (d *Driver) AddDevice(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
 	// Start subscription listener when device is added.
 	// This does not happen automatically like it does when the device is updated
-	go d.startSubscriber()
 	d.Logger.Debugf("Device %s is added", deviceName)
 	return nil
 }
