@@ -84,7 +84,7 @@ func createX509Template() x509.Certificate {
 }
 
 // Initialize performs protocol-specific initialization for the device service
-func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, deviceCh chan<- []sdkModel.DiscoveredDevice) error {
+func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.AsyncValues, _ chan<- []sdkModel.DiscoveredDevice) error {
 	d.Logger = lc
 	d.AsyncCh = asyncCh
 	d.serviceConfig = &config.ServiceConfig{}
@@ -338,7 +338,7 @@ func (d *Driver) cleanup() {
 
 // AddDevice is a callback function that is invoked
 // when a new Device associated with this Device Service is added
-func (d *Driver) AddDevice(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
+func (d *Driver) AddDevice(deviceName string, _ map[string]models.ProtocolProperties, _ models.AdminState) error {
 	// Start subscription listener when device is added.
 	// This does not happen automatically like it does when the device is updated
 	// go d.startSubscriber() // removed because it is already started in initialize
@@ -348,14 +348,14 @@ func (d *Driver) AddDevice(deviceName string, protocols map[string]models.Protoc
 
 // UpdateDevice is a callback function that is invoked
 // when a Device associated with this Device Service is updated
-func (d *Driver) UpdateDevice(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
+func (d *Driver) UpdateDevice(deviceName string, _ map[string]models.ProtocolProperties, _ models.AdminState) error {
 	d.Logger.Debugf("Device %s is updated", deviceName)
 	return nil
 }
 
 // RemoveDevice is a callback function that is invoked
 // when a Device associated with this Device Service is removed
-func (d *Driver) RemoveDevice(deviceName string, protocols map[string]models.ProtocolProperties) error {
+func (d *Driver) RemoveDevice(deviceName string, _ map[string]models.ProtocolProperties) error {
 	d.Logger.Debugf("Device %s is removed", deviceName)
 	return nil
 }
@@ -364,7 +364,7 @@ func (d *Driver) RemoveDevice(deviceName string, protocols map[string]models.Pro
 // if the force parameter is 'true', immediately. The driver is responsible
 // for closing any in-use channels, including the channel used to send async
 // readings (if supported).
-func (d *Driver) Stop(force bool) error {
+func (d *Driver) Stop(_ bool) error {
 	d.mu.Lock()
 	d.resourceMap = nil
 	d.mu.Unlock()
