@@ -115,7 +115,7 @@ func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.As
 		return errors.NewCommonEdgeX(errors.Kind(err), fmt.Sprintf("unable to listen for changes for '%s' custom configuration", CustomConfigSectionName), err)
 	}
 
-	//go startupSubscriptionListener(d)
+	go startupSubscriptionListener(d)
 
 	return nil
 }
@@ -132,7 +132,7 @@ var (
 
 // ReadCertAndKey capsules the containing method for easy mocking in unit tests
 var (
-	ReadCertAndKey = ReadClientCertAndPrivateKey
+	ReadCertAndKey = readClientCertAndPrivateKey
 )
 
 // CertKeyPair capsules the containing method for easy mocking in unit tests
@@ -140,14 +140,14 @@ var (
 	CertKeyPair = tls.X509KeyPair
 )
 
-func ReadClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) ([]byte, []byte, error) {
+func readClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) ([]byte, []byte, error) {
 	clientCertificate, err := os.ReadFile(clientCertFileName)
 	var privateKey []byte = nil
 
 	if err != nil {
 		log.Println("Client certificate not existing, creating new one")
 
-		clientCert, clientKey, err := CreateSelfSignedClientCertificates("localhost")
+		clientCert, clientKey, err := createSelfSignedClientCertificates("localhost")
 		if err != nil {
 			return nil, nil, err
 		}
@@ -180,7 +180,7 @@ func ReadClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) (
 	}
 	return clientCertificate, privateKey, nil
 }
-func CreateSelfSignedClientCertificates(clientName string) ([]byte, []byte, error) {
+func createSelfSignedClientCertificates(clientName string) ([]byte, []byte, error) {
 	template := createX509Template()
 	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, driver.serviceConfig.OPCUAServer.CertificateConfig.CertBits)
 	if err != nil {
@@ -261,7 +261,7 @@ func (d *Driver) createClientOptions() ([]opcua.Option, error) {
 			opcua.Certificate(cert),                // Set the certificate for the OPC UA Client
 			opcua.AuthUsername(username, password), // Use this if you are using username and password
 			opcua.SecurityFromEndpoint(ep, ua.UserTokenTypeUserName),
-			opcua.SessionTimeout(10 * time.Second),
+			opcua.SessionTimeout(30 * time.Minute),
 		}
 	}
 	return opts, nil
@@ -310,15 +310,20 @@ func (d *Driver) updateWritableConfig(rawWritableConfig interface{}) {
 	d.cleanup()
 
 	d.serviceConfig.OPCUAServer.Writable = *updated
-	go d.startSubscriber() // intentionally ignore the error here
+	go d.startSubscriberErrorHandling() // intentionally ignore the error here
+}
+
+// Start or restart the subscription listener
+func (d *Driver) startSubscriberErrorHandling() {
+	err := d.startSubscriber()
+	if err != nil {
+		d.Logger.Errorf("Driver.Initialize: Start incoming data Listener failed: %v", err)
+	}
 }
 
 // Start or restart the subscription listener
 func (d *Driver) startSubscriber() error {
 	err := d.startSubscriptionListener()
-	if err != nil {
-		d.Logger.Errorf("Driver.Initialize: Start incoming data Listener failed: %v", err)
-	}
 	return err
 }
 
