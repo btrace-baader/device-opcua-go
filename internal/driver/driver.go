@@ -37,7 +37,6 @@ import (
 
 var once sync.Once
 var driver *Driver
-var opcuaclient *opcua.Client
 
 // Driver struct
 type Driver struct {
@@ -60,9 +59,9 @@ func NewProtocolDriver() sdkModel.ProtocolDriver {
 func startupSubscriptionListener(d *Driver) {
 	for {
 		d.Logger.Infof("start subscriber")
-		d.startSubscriber()
+		err := d.startSubscriber()
 
-		if opcuaclient != nil {
+		if err == nil {
 			break
 		}
 		time.Sleep(5 * time.Second)
@@ -116,7 +115,7 @@ func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.As
 		return errors.NewCommonEdgeX(errors.Kind(err), fmt.Sprintf("unable to listen for changes for '%s' custom configuration", CustomConfigSectionName), err)
 	}
 
-	go startupSubscriptionListener(d)
+	//go startupSubscriptionListener(d)
 
 	return nil
 }
@@ -311,15 +310,16 @@ func (d *Driver) updateWritableConfig(rawWritableConfig interface{}) {
 	d.cleanup()
 
 	d.serviceConfig.OPCUAServer.Writable = *updated
-	go d.startSubscriber()
+	go d.startSubscriber() // intentionally ignore the error here
 }
 
 // Start or restart the subscription listener
-func (d *Driver) startSubscriber() {
+func (d *Driver) startSubscriber() error {
 	err := d.startSubscriptionListener()
 	if err != nil {
 		d.Logger.Errorf("Driver.Initialize: Start incoming data Listener failed: %v", err)
 	}
+	return err
 }
 
 // Close the existing context.
@@ -336,7 +336,7 @@ func (d *Driver) cleanup() {
 func (d *Driver) AddDevice(deviceName string, protocols map[string]models.ProtocolProperties, adminState models.AdminState) error {
 	// Start subscription listener when device is added.
 	// This does not happen automatically like it does when the device is updated
-	//go d.startSubscriber()
+	// go d.startSubscriber() // removed because it is already started in initialize
 	d.Logger.Debugf("Device %s is added", deviceName)
 	return nil
 }

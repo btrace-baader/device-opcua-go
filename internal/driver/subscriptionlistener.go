@@ -57,7 +57,7 @@ func (d *Driver) startSubscriptionListener() error {
 		d.Logger.Warnf("[Incoming listener] Failed to connect OPCUA client, %s", err)
 		return err
 	}
-	defer CloseClient(d, client)
+	defer closeClient(d, client)
 
 	notifyCh := make(chan *opcua.PublishNotificationData)
 
@@ -67,10 +67,10 @@ func (d *Driver) startSubscriptionListener() error {
 	if err != nil {
 		return err
 	}
-	defer CancelSubscription(d, sub, ctx)
+	defer cancelSubscription(d, sub, ctx)
 
 	// begin continuous client state check
-	go CheckClientState(d, client)
+	go checkClientState(d, client)
 
 	if err = d.configureMonitoredItems(sub, resources, deviceName); err != nil {
 		return err
@@ -98,23 +98,23 @@ func (d *Driver) startSubscriptionListener() error {
 }
 
 // CloseClient tries to close the client connection
-func CloseClient(d *Driver, client *opcua.Client) {
+func closeClient(d *Driver, client *opcua.Client) {
 	err := client.Close()
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to close OPCUA client connection., %s", err)
 	}
 }
 
-// CancelSubscription cancel the subscription
-func CancelSubscription(d *Driver, sub *opcua.Subscription, ctx context.Context) {
+// cancelSubscription cancel the subscription
+func cancelSubscription(d *Driver, sub *opcua.Subscription, ctx context.Context) {
 	err := sub.Cancel(ctx)
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to cancel subscription., %s", err)
 	}
 }
 
-// CheckClientState Periodically checks the client state for connection issues.
-func CheckClientState(d *Driver, client *opcua.Client) {
+// checkClientState Periodically checks the client state for connection issues.
+func checkClientState(d *Driver, client *opcua.Client) {
 
 	// set to default values to avoid errors when client is nil
 	lastState := opcua.Closed
