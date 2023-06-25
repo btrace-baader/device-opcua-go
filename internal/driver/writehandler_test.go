@@ -104,7 +104,7 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		},
 	}
 
-	server := test.NewServer("../test/opcua_server.py")
+	server := NewServer("../test/opcua_server.py")
 	defer server.Close()
 
 	for _, tt := range tests {

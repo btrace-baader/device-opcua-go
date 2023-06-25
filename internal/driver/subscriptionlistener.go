@@ -97,20 +97,32 @@ func (d *Driver) startSubscriptionListener() error {
 	}
 }
 
+// ClientCloser interface gives us possibility to mock opcua client and its closing function.
+type ClientCloser interface {
+	Close() error
+}
+
+// SubscriptionCanceller interface gives us possibility to mock a opcua subscription and its cancel function.
+type SubscriptionCanceller interface {
+	Cancel(ctx context.Context) error
+}
+
 // CloseClient tries to close the client connection
-func closeClient(d *Driver, client *opcua.Client) {
+func closeClient(d *Driver, client ClientCloser) error {
 	err := client.Close()
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to close OPCUA client connection., %s", err)
 	}
+	return err
 }
 
 // cancelSubscription cancel the subscription
-func cancelSubscription(d *Driver, sub *opcua.Subscription, ctx context.Context) {
-	err := sub.Cancel(ctx)
+func cancelSubscription(d *Driver, cancel SubscriptionCanceller, ctx context.Context) error {
+	err := cancel.Cancel(ctx)
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to cancel subscription., %s", err)
 	}
+	return err
 }
 
 // checkClientState Periodically checks the client state for connection issues.
@@ -122,7 +134,6 @@ func checkClientState(d *Driver, client *opcua.Client) {
 	for {
 		if client != nil {
 			actualState = client.State()
-
 			if (lastState == opcua.Connected || actualState == opcua.Disconnected) && lastState != actualState {
 				// if you are coming from connected (last state) then log warning
 				d.Logger.Warnf("opc ua client is in connection state: Disconnected")
