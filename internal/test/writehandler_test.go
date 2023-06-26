@@ -35,7 +35,7 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		{
 			name: "NOK - no endpoint defined",
 			args: args{
-				deviceName: "Test",
+				deviceName: "TestDevice1",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
@@ -45,7 +45,7 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		{
 			name: "NOK - invalid endpoint defined",
 			args: args{
-				deviceName: "Test",
+				deviceName: "TestDevice2",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + "unknown"}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
@@ -54,7 +54,7 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		{
 			name: "NOK - invalid node id",
 			args: args{
-				deviceName: "Test",
+				deviceName: "TestDevice3",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
@@ -72,7 +72,7 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		{
 			name: "NOK - invalid value",
 			args: args{
-				deviceName: "Test",
+				deviceName: "TestDevice4",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
@@ -91,7 +91,7 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		{
 			name: "OK - command request with one parameter",
 			args: args{
-				deviceName: "Test",
+				deviceName: "TestDevice5",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",

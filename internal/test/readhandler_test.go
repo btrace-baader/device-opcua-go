@@ -18,7 +18,7 @@ import (
 	"testing"
 )
 
-func TestDriver_HandleReadCommands(t *testing.T) {
+func TestDriverHandleReadCommands(t *testing.T) {
 	type args struct {
 		deviceName string
 		protocols  map[string]models.ProtocolProperties
@@ -34,7 +34,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "NOK - no endpoint defined",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test1",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
@@ -45,7 +45,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "NOK - invalid endpoint defined",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test2",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + "unknown"},
 				},
@@ -58,7 +58,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "NOK - non-existent variable",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test3",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + Address},
 				},
@@ -75,7 +75,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "NOK - read command - invalid node id",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test4",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + Address},
 				},
@@ -92,7 +92,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "NOK - method call - invalid node id",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test5",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + Address},
 				},
@@ -109,7 +109,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "NOK - method call - method does not exist",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test6",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + Address},
 				},
@@ -126,7 +126,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "OK - read value from mock server",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test7",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + Address},
 				},
@@ -148,7 +148,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		{
 			name: "OK - call method from mock server",
 			args: args{
-				deviceName: "Test",
+				deviceName: "Test8",
 				protocols: map[string]models.ProtocolProperties{
 					config.Protocol: {config.Endpoint: Protocol + Address},
 				},
