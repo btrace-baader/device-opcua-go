@@ -18,6 +18,12 @@ import (
 	"testing"
 )
 
+var defaultServiceConfig = config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}}
+var emptyEndpoitConfig = config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}}
+var defaultProtocol = map[string]models.ProtocolProperties{
+	config.Protocol: {config.Endpoint: Protocol + Address},
+}
+
 func TestDriverHandleReadCommands(t *testing.T) {
 	type args struct {
 		deviceName string
@@ -38,7 +44,7 @@ func TestDriverHandleReadCommands(t *testing.T) {
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
+			serviceConfig: emptyEndpoitConfig,
 			want:          nil,
 			wantErr:       true,
 		},
@@ -51,7 +57,7 @@ func TestDriverHandleReadCommands(t *testing.T) {
 				},
 				reqs: []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
+			serviceConfig: emptyEndpoitConfig,
 			want:          nil,
 			wantErr:       true,
 		},
@@ -59,16 +65,14 @@ func TestDriverHandleReadCommands(t *testing.T) {
 			name: "NOK - non-existent variable",
 			args: args{
 				deviceName: "Test3",
-				protocols: map[string]models.ProtocolProperties{
-					config.Protocol: {config.Endpoint: Protocol + Address},
-				},
+				protocols:  defaultProtocol,
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestVar1",
 					Attributes:         map[string]interface{}{driver.NODE: "ns=2;s=fake"},
 					Type:               common.ValueTypeInt32,
 				}},
 			},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			serviceConfig: defaultServiceConfig,
 			want:          make([]*sdkModel.CommandValue, 1),
 			wantErr:       true,
 		},
@@ -76,16 +80,14 @@ func TestDriverHandleReadCommands(t *testing.T) {
 			name: "NOK - read command - invalid node id",
 			args: args{
 				deviceName: "Test4",
-				protocols: map[string]models.ProtocolProperties{
-					config.Protocol: {config.Endpoint: Protocol + Address},
-				},
+				protocols:  defaultProtocol,
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
 					Attributes:         map[string]interface{}{driver.NODE: "2"},
 					Type:               common.ValueTypeInt32,
 				}},
 			},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			serviceConfig: defaultServiceConfig,
 			want:          make([]*sdkModel.CommandValue, 1),
 			wantErr:       true,
 		},
@@ -93,16 +95,14 @@ func TestDriverHandleReadCommands(t *testing.T) {
 			name: "NOK - method call - invalid node id",
 			args: args{
 				deviceName: "Test5",
-				protocols: map[string]models.ProtocolProperties{
-					config.Protocol: {config.Endpoint: Protocol + Address},
-				},
+				protocols:  defaultProtocol,
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
 					Attributes:         map[string]interface{}{driver.METHOD: "ns=2;s=test"},
 					Type:               common.ValueTypeInt32,
 				}},
 			},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			serviceConfig: defaultServiceConfig,
 			want:          make([]*sdkModel.CommandValue, 1),
 			wantErr:       true,
 		},
@@ -110,16 +110,14 @@ func TestDriverHandleReadCommands(t *testing.T) {
 			name: "NOK - method call - method does not exist",
 			args: args{
 				deviceName: "Test6",
-				protocols: map[string]models.ProtocolProperties{
-					config.Protocol: {config.Endpoint: Protocol + Address},
-				},
+				protocols:  defaultProtocol,
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
 					Attributes:         map[string]interface{}{driver.METHOD: "ns=2;s=test", driver.OBJECT: "ns=2;s=main"},
 					Type:               common.ValueTypeInt32,
 				}},
 			},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			serviceConfig: defaultServiceConfig,
 			want:          make([]*sdkModel.CommandValue, 1),
 			wantErr:       true,
 		},
@@ -127,9 +125,7 @@ func TestDriverHandleReadCommands(t *testing.T) {
 			name: "OK - read value from mock server",
 			args: args{
 				deviceName: "Test7",
-				protocols: map[string]models.ProtocolProperties{
-					config.Protocol: {config.Endpoint: Protocol + Address},
-				},
+				protocols:  defaultProtocol,
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestVar1",
 					Attributes:         map[string]interface{}{driver.NODE: "ns=2;s=ro_int32"},
@@ -142,16 +138,14 @@ func TestDriverHandleReadCommands(t *testing.T) {
 				Value:              int32(5),
 				Tags:               make(map[string]string),
 			}},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			serviceConfig: defaultServiceConfig,
 			wantErr:       false,
 		},
 		{
 			name: "OK - call method from mock server",
 			args: args{
 				deviceName: "Test8",
-				protocols: map[string]models.ProtocolProperties{
-					config.Protocol: {config.Endpoint: Protocol + Address},
-				},
+				protocols:  defaultProtocol,
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "SquareResource",
 					Attributes:         map[string]interface{}{driver.METHOD: "ns=2;s=square", driver.OBJECT: "ns=2;s=main", driver.INPUTMAP: []interface{}{"2"}},
@@ -164,18 +158,13 @@ func TestDriverHandleReadCommands(t *testing.T) {
 				Value:              int64(4),
 				Tags:               make(map[string]string),
 			}},
-			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			serviceConfig: defaultServiceConfig,
 			wantErr:       false,
 		},
 	}
 
 	server := NewServer("../test/opcua_server.py")
-	defer func(server *Server) {
-		err := server.Close()
-		if err != nil {
-			// do nothing
-		}
-	}(server)
+	defer closeServer(server)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

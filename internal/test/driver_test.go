@@ -20,6 +20,13 @@ import (
 	"testing"
 )
 
+// helper function to be used in several test classes
+func closeServer(server *Server) {
+	err := server.Close()
+	if err != nil {
+		// do nothing
+	}
+}
 func TestDriver_updateWritableConfig(t *testing.T) {
 	type args struct {
 		rawWritableConfig interface{}

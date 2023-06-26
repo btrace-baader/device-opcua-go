@@ -16,15 +16,24 @@ const (
 	reconnectionTimeout = 10 * time.Second
 )
 
+func createMethodRequest(objectId string, methodId string) *ua.CallMethodRequest {
+	method := &ua.CallMethodRequest{
+		ObjectID:       ua.NewStringNodeID(2, objectId),
+		MethodID:       ua.NewStringNodeID(2, methodId),
+		InputArguments: []*ua.Variant{},
+	}
+	return method
+}
+
 // TestAutoReconnection performs an integration test the auto reconnection
 // from an OPC/UA server.
 func TestAutoReconnection(t *testing.T) {
 	ctx := context.Background()
 
-	srv := NewServer("reconnection_server.py")
-	defer srv.Close()
+	server := NewServer("reconnection_server.py")
+	defer closeServer(server)
 
-	c := opcua.NewClient(srv.Endpoint, srv.Opts...)
+	c := opcua.NewClient(server.Endpoint, server.Opts...)
 	if err := c.Connect(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -52,27 +61,15 @@ func TestAutoReconnection(t *testing.T) {
 		},
 		{
 			name: "securechannel_failure",
-			req: &ua.CallMethodRequest{
-				ObjectID:       ua.NewStringNodeID(2, "simulations"),
-				MethodID:       ua.NewStringNodeID(2, "simulate_securechannel_failure"),
-				InputArguments: []*ua.Variant{},
-			},
+			req:  createMethodRequest("simulations", "simulate_securechannel_failure"),
 		},
 		{
 			name: "session_failure",
-			req: &ua.CallMethodRequest{
-				ObjectID:       ua.NewStringNodeID(2, "simulations"),
-				MethodID:       ua.NewStringNodeID(2, "simulate_session_failure"),
-				InputArguments: []*ua.Variant{},
-			},
+			req:  createMethodRequest("simulations", "simulate_session_failure"),
 		},
 		{
 			name: "subscription_failure",
-			req: &ua.CallMethodRequest{
-				ObjectID:       ua.NewStringNodeID(2, "simulations"),
-				MethodID:       ua.NewStringNodeID(2, "simulate_subscription_failure"),
-				InputArguments: []*ua.Variant{},
-			},
+			req:  createMethodRequest("simulations", "simulate_subscription_failure"),
 		},
 	}
 
