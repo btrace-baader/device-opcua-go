@@ -69,7 +69,7 @@ func (mcc mockClientCloser) Close() error                     { return mcc.error
 func (msc mockSubCanceller) Cancel(ctx context.Context) error { return msc.error }
 func (mc mockClient) State() opcua.ConnState                  { return mc.returnState }
 
-func Test_checkClientState(t *testing.T) {
+func TestCheckClientState(t *testing.T) {
 	tests := []struct {
 		name             string
 		serviceConfig    *config.ServiceConfig
@@ -111,11 +111,15 @@ func Test_checkClientState(t *testing.T) {
 				t.Error("Expected both client states do be closed when client is nil")
 				return
 			}
+
+			//reset
+			driver.ActualClientState = opcua.Closed
+			driver.LastClientState = opcua.Closed
 		})
 	}
 }
 
-func Test_closeClient(t *testing.T) {
+func TestCloseClient(t *testing.T) {
 	tests := []struct {
 		name          string
 		serviceConfig *config.ServiceConfig
@@ -148,7 +152,7 @@ func Test_closeClient(t *testing.T) {
 		})
 	}
 }
-func Test_cancelSubscription(t *testing.T) {
+func TestCancelSubscription(t *testing.T) {
 	tests := []struct {
 		name          string
 		serviceConfig *config.ServiceConfig
@@ -183,7 +187,7 @@ func Test_cancelSubscription(t *testing.T) {
 	}
 }
 
-func TestDriver_getClient(t *testing.T) {
+func TestDriverGetClient(t *testing.T) {
 	tests := []struct {
 		name          string
 		serviceConfig *config.ServiceConfig
@@ -224,7 +228,7 @@ func TestDriver_getClient(t *testing.T) {
 	}
 }
 
-func TestDriver_handleDataChange(t *testing.T) {
+func TestDriverHandleDataChange(t *testing.T) {
 	tests := []struct {
 		name        string
 		resourceMap map[uint32]string

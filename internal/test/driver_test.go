@@ -27,7 +27,7 @@ func closeServer(server *Server) {
 		// do nothing
 	}
 }
-func TestDriver_updateWritableConfig(t *testing.T) {
+func TestDriverUpdateWritableConfig(t *testing.T) {
 	type args struct {
 		rawWritableConfig interface{}
 	}
@@ -55,7 +55,7 @@ func TestDriver_updateWritableConfig(t *testing.T) {
 	}
 }
 
-func TestDriver_AddDevice(t *testing.T) {
+func TestDriverAddDevice(t *testing.T) {
 	type args struct {
 		deviceName string
 		protocols  map[string]models.ProtocolProperties
@@ -84,7 +84,7 @@ func TestDriver_AddDevice(t *testing.T) {
 	}
 }
 
-func TestDriver_UpdateDevice(t *testing.T) {
+func TestDriverUpdateDevice(t *testing.T) {
 	type args struct {
 		deviceName string
 		protocols  map[string]models.ProtocolProperties
@@ -112,7 +112,7 @@ func TestDriver_UpdateDevice(t *testing.T) {
 		})
 	}
 }
-func TestDriver_CreateClientOptions(t *testing.T) {
+func TestDriverCreateClientOptions(t *testing.T) {
 	tests := []struct {
 		name                 string
 		getEndpointsMock     func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error)
@@ -194,7 +194,7 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 		})
 	}
 }
-func TestDriver_Stop(t *testing.T) {
+func TestDriverStop(t *testing.T) {
 	type args struct {
 		force bool
 	}
@@ -224,7 +224,7 @@ func TestDriver_Stop(t *testing.T) {
 	}
 }
 
-func Test_getNodeID(t *testing.T) {
+func TestGetNodeID(t *testing.T) {
 	type args struct {
 		attrs map[string]interface{}
 		id    string
@@ -262,7 +262,7 @@ func Test_getNodeID(t *testing.T) {
 	}
 }
 
-func TestDriver_Initialize(t *testing.T) {
+func TestDriverInitialize(t *testing.T) {
 	t.Run("initialize", func(t *testing.T) {
 		d := driver.NewProtocolDriver()
 		err := d.Initialize(&logger.MockLogger{}, make(chan<- *sdkModel.AsyncValues), make(chan<- []sdkModel.DiscoveredDevice))

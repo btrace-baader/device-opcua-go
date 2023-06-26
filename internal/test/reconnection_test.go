@@ -142,7 +142,6 @@ func TestAutoReconnection(t *testing.T) {
 				}
 			}
 		})
-
 		if !ok {
 			t.FailNow()
 		}
