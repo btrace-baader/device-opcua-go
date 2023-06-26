@@ -19,22 +19,19 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 )
 
-func createArgs(name string, protocols map[string]models.ProtocolProperties, requests []sdkModel.CommandRequest, params []*sdkModel.CommandValue) args {
-	args := args{
-		deviceName: name,
-		protocols:  protocols,
-		reqs:       requests,
-		params:     params,
-	}
-	return args
-}
-
 type args struct {
 	deviceName string
 	protocols  map[string]models.ProtocolProperties
 	reqs       []sdkModel.CommandRequest
 	params     []*sdkModel.CommandValue
 }
+
+var baseProtocol = map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}}
+var intCommandValue = []*sdkModel.CommandValue{{
+	DeviceResourceName: "TestResource1",
+	Type:               common.ValueTypeInt32,
+	Value:              int32(42),
+}}
 
 func TestDriverHandleWriteCommands(t *testing.T) {
 
@@ -46,73 +43,68 @@ func TestDriverHandleWriteCommands(t *testing.T) {
 	}{
 		{
 			name: "NOK - no endpoint defined",
-			args: createArgs(
-				"TestDevice1",
-				map[string]models.ProtocolProperties{config.Protocol: {}},
-				[]sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
-				nil),
+			args: args{
+				deviceName: "TestDevice1",
+				protocols:  map[string]models.ProtocolProperties{config.Protocol: {}},
+				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
+			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
 			wantErr:       true,
 		},
 		{
 			name: "NOK - invalid endpoint defined",
-			args: createArgs(
-				"TestDevice2",
-				map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + "unknown"}},
-				[]sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
-				nil),
+			args: args{
+				deviceName: "TestDevice2",
+				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + "unknown"}},
+				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
+			},
 			wantErr: true,
 		},
 		{
 			name: "NOK - invalid node id",
-			args: createArgs(
-				"TestDevice3",
-				map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
-				[]sdkModel.CommandRequest{{
+			args: args{
+				deviceName: "TestDevice3",
+				protocols:  baseProtocol,
+				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
 					Attributes:         map[string]interface{}{driver.NODE: "2"},
 					Type:               common.ValueTypeInt32,
 				}},
-				[]*sdkModel.CommandValue{{
-					DeviceResourceName: "TestResource1",
-					Type:               common.ValueTypeInt32,
-					Value:              int32(42),
-				}}),
+				params: intCommandValue,
+			},
 			wantErr: true,
 		},
 		{
 			name: "NOK - invalid value",
-			args: createArgs(
-				"TestDevice4",
-				map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
-				[]sdkModel.CommandRequest{{
+			args: args{
+				deviceName: "TestDevice4",
+				protocols:  baseProtocol,
+				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
 					Attributes:         map[string]interface{}{driver.NODE: "ns=2;s=rw_int32"},
 					Type:               common.ValueTypeInt32,
 				}},
-				[]*sdkModel.CommandValue{{
+				params: []*sdkModel.CommandValue{{
 					DeviceResourceName: "TestResource1",
 					Type:               common.ValueTypeString,
 					Value:              "foobar",
-				}}),
+				}},
+			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
 			wantErr:       true,
 		},
 		{
 			name: "OK - command request with one parameter",
-			args: createArgs(
-				"TestDevice5",
-				map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
-				[]sdkModel.CommandRequest{{
+			args: args{
+				deviceName: "TestDevice5",
+				protocols:  baseProtocol,
+				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
 					Attributes:         map[string]interface{}{driver.NODE: "ns=2;s=rw_int32"},
 					Type:               common.ValueTypeInt32,
 				}},
-				[]*sdkModel.CommandValue{{
-					DeviceResourceName: "TestResource1",
-					Type:               common.ValueTypeInt32,
-					Value:              int32(42),
-				}}),
+				params: intCommandValue,
+			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
 			wantErr:       false,
 		},
