@@ -4,11 +4,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package driver
+package test
 
 import (
 	"context"
 	"github.com/edgexfoundry/device-opcua-go/internal/config"
+	"github.com/edgexfoundry/device-opcua-go/internal/driver"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 	"github.com/gopcua/opcua"
@@ -19,26 +20,26 @@ import (
 
 func Test_startSubscriptionListener(t *testing.T) {
 	t.Run("create context and exit", func(t *testing.T) {
-		d := NewProtocolDriver().(*Driver)
-		d.serviceConfig = &config.ServiceConfig{}
-		d.serviceConfig.OPCUAServer.Writable.Resources = "IntVarTest1"
+		d := driver.NewProtocolDriver().(*driver.Driver)
+		d.ServiceConfig = &config.ServiceConfig{}
+		d.ServiceConfig.OPCUAServer.Writable.Resources = "IntVarTest1"
 
-		err := d.startSubscriptionListener()
+		err := d.StartSubscriptionListener()
 		if err == nil {
 			t.Error("expected err to exist in test environment")
 		}
 
-		d.ctxCancel()
+		d.CtxCancel()
 	})
 }
 
 func Test_onIncomingDataListener(t *testing.T) {
 	t.Run("set reading and exit", func(t *testing.T) {
-		d := NewProtocolDriver().(*Driver)
-		d.serviceConfig = &config.ServiceConfig{}
-		d.serviceConfig.OPCUAServer.DeviceName = "Test"
+		d := driver.NewProtocolDriver().(*driver.Driver)
+		d.ServiceConfig = &config.ServiceConfig{}
+		d.ServiceConfig.OPCUAServer.DeviceName = "Test"
 
-		err := d.onIncomingDataReceived("42", "TestResource", nil)
+		err := d.OnIncomingDataReceived("42", "TestResource", nil)
 		if err == nil {
 			t.Error("expected err to exist in test environment")
 		}
@@ -58,14 +59,67 @@ type (
 	}
 )
 
+type (
+	mockClient struct {
+		returnState opcua.ConnState
+	}
+)
+
 func (mcc mockClientCloser) Close() error                     { return mcc.error }
 func (msc mockSubCanceller) Cancel(ctx context.Context) error { return msc.error }
+func (mc mockClient) State() opcua.ConnState                  { return mc.returnState }
+
+func Test_checkClientState(t *testing.T) {
+	tests := []struct {
+		name             string
+		serviceConfig    *config.ServiceConfig
+		mockClient       driver.ClientState
+		secondMockClient driver.ClientState
+	}{
+		{
+			name:          "OK - Client state Reconnecting should be extracted.",
+			serviceConfig: &config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{}},
+			mockClient:    mockClient{returnState: opcua.Reconnecting},
+		},
+		{
+			name:          "OK - Client state Disconnected should be extracted.",
+			serviceConfig: &config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{}},
+			mockClient:    mockClient{returnState: opcua.Disconnected},
+		},
+		{
+			name:          "OK - Client state Connected should be extracted.",
+			serviceConfig: &config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{}},
+			mockClient:    mockClient{returnState: opcua.Connected},
+		},
+		{
+			name:          "OK - Client state should be ignored if client is",
+			serviceConfig: &config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{}},
+			mockClient:    nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := driver.NewProtocolDriver().(*driver.Driver)
+			d.Logger = logger.MockLogger{}
+			d.ServiceConfig = &config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{ConnRetryWaitTime: 1}}
+			driver.HandleCurrentClientState(d, tt.mockClient)
+
+			if tt.mockClient != nil && driver.ActualClientState != tt.mockClient.State() {
+				t.Errorf("Expected ActualClientState to be %v, got %v", tt.mockClient.State(), driver.ActualClientState)
+				return
+			} else if tt.mockClient == nil && (driver.ActualClientState != opcua.Closed || driver.LastClientState != opcua.Closed) {
+				t.Error("Expected both client states do be closed when client is nil")
+				return
+			}
+		})
+	}
+}
 
 func Test_closeClient(t *testing.T) {
 	tests := []struct {
 		name          string
 		serviceConfig *config.ServiceConfig
-		closer        ClientCloser
+		closer        driver.ClientCloser
 		wantErr       bool
 	}{
 		{
@@ -83,10 +137,10 @@ func Test_closeClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := NewProtocolDriver().(*Driver)
+			d := driver.NewProtocolDriver().(*driver.Driver)
 			d.Logger = logger.MockLogger{}
-			d.serviceConfig = &config.ServiceConfig{}
-			err := closeClient(d, tt.closer)
+			d.ServiceConfig = &config.ServiceConfig{}
+			err := driver.CloseClient(d, tt.closer)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Driver.getClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -98,7 +152,7 @@ func Test_cancelSubscription(t *testing.T) {
 	tests := []struct {
 		name          string
 		serviceConfig *config.ServiceConfig
-		canceller     SubscriptionCanceller
+		canceller     driver.SubscriptionCanceller
 		wantErr       bool
 	}{
 		{
@@ -116,11 +170,11 @@ func Test_cancelSubscription(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := NewProtocolDriver().(*Driver)
+			d := driver.NewProtocolDriver().(*driver.Driver)
 			ctx := context.Background()
 			d.Logger = logger.MockLogger{}
-			d.serviceConfig = &config.ServiceConfig{}
-			err := cancelSubscription(d, tt.canceller, ctx)
+			d.ServiceConfig = &config.ServiceConfig{}
+			err := driver.CancelSubscription(d, tt.canceller, ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Driver.getClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -158,10 +212,10 @@ func TestDriver_getClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := NewProtocolDriver().(*Driver)
+			d := driver.NewProtocolDriver().(*driver.Driver)
 			d.Logger = logger.MockLogger{}
-			d.serviceConfig = &config.ServiceConfig{}
-			_, err := d.getClient(tt.device)
+			d.ServiceConfig = &config.ServiceConfig{}
+			_, err := d.GetClient(tt.device)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Driver.getClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -192,9 +246,9 @@ func TestDriver_handleDataChange(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := NewProtocolDriver().(*Driver)
-			d.serviceConfig = &config.ServiceConfig{}
-			d.handleDataChange(tt.dcn)
+			d := driver.NewProtocolDriver().(*driver.Driver)
+			d.ServiceConfig = &config.ServiceConfig{}
+			d.HandleDataChange(tt.dcn)
 		})
 	}
 }

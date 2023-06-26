@@ -4,14 +4,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package driver
+package test
 
 import (
+	"github.com/edgexfoundry/device-opcua-go/internal/driver"
+	"github.com/gopcua/opcua"
 	"reflect"
 	"testing"
 
 	"github.com/edgexfoundry/device-opcua-go/internal/config"
-	"github.com/edgexfoundry/device-opcua-go/internal/test"
 	sdkModel "github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/common"
@@ -26,9 +27,11 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		params     []*sdkModel.CommandValue
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name                    string
+		args                    args
+		createClientOptionsMock func() ([]opcua.Option, error)
+		serviceConfig           config.ServiceConfig
+		wantErr                 bool
 	}{
 		{
 			name: "NOK - no endpoint defined",
@@ -37,14 +40,23 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
-			wantErr: true,
+			createClientOptionsMock: func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
+			},
+			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
+			wantErr:       true,
 		},
 		{
 			name: "NOK - invalid endpoint defined",
 			args: args{
 				deviceName: "Test",
-				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: test.Protocol + "unknown"}},
+				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + "unknown"}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
+			},
+			createClientOptionsMock: func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
 			},
 			wantErr: true,
 		},
@@ -52,10 +64,10 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 			name: "NOK - invalid node id",
 			args: args{
 				deviceName: "Test",
-				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: test.Protocol + test.Address}},
+				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
-					Attributes:         map[string]interface{}{NODE: "2"},
+					Attributes:         map[string]interface{}{driver.NODE: "2"},
 					Type:               common.ValueTypeInt32,
 				}},
 				params: []*sdkModel.CommandValue{{
@@ -64,16 +76,20 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 					Value:              int32(42),
 				}},
 			},
+			createClientOptionsMock: func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
+			},
 			wantErr: true,
 		},
 		{
 			name: "NOK - invalid value",
 			args: args{
 				deviceName: "Test",
-				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: test.Protocol + test.Address}},
+				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
-					Attributes:         map[string]interface{}{NODE: "ns=2;s=rw_int32"},
+					Attributes:         map[string]interface{}{driver.NODE: "ns=2;s=rw_int32"},
 					Type:               common.ValueTypeInt32,
 				}},
 				params: []*sdkModel.CommandValue{{
@@ -82,16 +98,21 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 					Value:              "foobar",
 				}},
 			},
-			wantErr: true,
+			createClientOptionsMock: func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
+			},
+			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			wantErr:       true,
 		},
 		{
 			name: "OK - command request with one parameter",
 			args: args{
 				deviceName: "Test",
-				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: test.Protocol + test.Address}},
+				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + Address}},
 				reqs: []sdkModel.CommandRequest{{
 					DeviceResourceName: "TestResource1",
-					Attributes:         map[string]interface{}{NODE: "ns=2;s=rw_int32"},
+					Attributes:         map[string]interface{}{driver.NODE: "ns=2;s=rw_int32"},
 					Type:               common.ValueTypeInt32,
 				}},
 				params: []*sdkModel.CommandValue{{
@@ -100,18 +121,25 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 					Value:              int32(42),
 				}},
 			},
-			wantErr: false,
+			createClientOptionsMock: func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
+			},
+			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
+			wantErr:       false,
 		},
 	}
 
-	server := test.NewServer("../test/opcua_server.py")
+	server := NewServer("../test/opcua_server.py")
 	defer server.Close()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			d := &Driver{
+			d := &driver.Driver{
 				Logger: &logger.MockLogger{},
 			}
+			d.ServiceConfig = &tt.serviceConfig
+			driver.CreateClientOptions = tt.createClientOptionsMock
 			if err := d.HandleWriteCommands(tt.args.deviceName, tt.args.protocols, tt.args.reqs, tt.args.params); (err != nil) != tt.wantErr {
 				t.Errorf("Driver.HandleWriteCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -217,7 +245,7 @@ func Test_newCommandValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := newCommandValue(tt.args.valueType, tt.args.param)
+			got, err := driver.NewCommandValue(tt.args.valueType, tt.args.param)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newCommandValue() error = %v, wantErr %v", err, tt.wantErr)
 				return

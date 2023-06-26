@@ -6,7 +6,6 @@ from opcua.ua.ua_binary import struct_to_binary, header_to_binary
 
 server = None
 
-
 # HACK: opcua does not support sending error message
 def send_error_message(status_code, reason="test bench simulation"):
     # take the first transport they all have the same processor
@@ -37,21 +36,17 @@ def simulate_connection_failure(parent):
     server.iserver.loop.call_soon(close_connection)
     return []
 
-
 def simulate_securechannel_failure(parent):
     server.iserver.loop.call_soon(lambda: send_error_message(ua.StatusCode(ua.StatusCodes.BadSecureChannelIdInvalid)))
     return []
-
 
 def simulate_session_failure(parent):
     server.iserver.loop.call_soon(lambda: send_error_message(ua.StatusCode(ua.StatusCodes.BadSessionIdInvalid)))
     return []
 
-
 def simulate_subscription_failure(parent):
     server.iserver.loop.call_soon(lambda: send_error_message(ua.StatusCode(ua.StatusCodes.BadSubscriptionIdInvalid)))
     return []
-
 
 if __name__ == "__main__":
     server = Server()

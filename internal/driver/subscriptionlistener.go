@@ -20,11 +20,14 @@ import (
 	"time"
 )
 
-func (d *Driver) startSubscriptionListener() error {
+var LastClientState opcua.ConnState
+var ActualClientState opcua.ConnState
+
+func (d *Driver) StartSubscriptionListener() error {
 
 	var (
-		deviceName = d.serviceConfig.OPCUAServer.DeviceName
-		resources  = d.serviceConfig.OPCUAServer.Writable.Resources
+		deviceName = d.ServiceConfig.OPCUAServer.DeviceName
+		resources  = d.ServiceConfig.OPCUAServer.Writable.Resources
 	)
 
 	// No need to start a subscription if there are no resources to monitor
@@ -36,7 +39,7 @@ func (d *Driver) startSubscriptionListener() error {
 	// Create a cancelable context for Writable configuration
 	ctxBg := context.Background()
 	ctx, cancel := context.WithCancel(ctxBg)
-	d.ctxCancel = cancel
+	d.CtxCancel = cancel
 
 	ds := service.RunningService()
 	if ds == nil {
@@ -48,7 +51,7 @@ func (d *Driver) startSubscriptionListener() error {
 		return err
 	}
 
-	client, err := d.getClient(device)
+	client, err := d.GetClient(device)
 	if err != nil {
 		return err
 	}
@@ -57,20 +60,20 @@ func (d *Driver) startSubscriptionListener() error {
 		d.Logger.Warnf("[Incoming listener] Failed to connect OPCUA client, %s", err)
 		return err
 	}
-	defer closeClient(d, client)
+	defer CloseClient(d, client)
 
 	notifyCh := make(chan *opcua.PublishNotificationData)
 
 	sub, err := client.SubscribeWithContext(ctx, &opcua.SubscriptionParameters{
-		Interval: time.Duration(d.serviceConfig.OPCUAServer.SubscriptionInterval) * time.Millisecond,
+		Interval: time.Duration(d.ServiceConfig.OPCUAServer.SubscriptionInterval) * time.Millisecond,
 	}, notifyCh)
 	if err != nil {
 		return err
 	}
-	defer cancelSubscription(d, sub, ctx)
+	defer CancelSubscription(d, sub, ctx)
 
 	// begin continuous client state check
-	go checkClientState(d, client)
+	go InitCheckClientState(d, client)
 
 	if err = d.configureMonitoredItems(sub, resources, deviceName); err != nil {
 		return err
@@ -91,24 +94,29 @@ func (d *Driver) startSubscriptionListener() error {
 			switch x := res.Value.(type) {
 			// result type: DateChange StatusChange
 			case *ua.DataChangeNotification:
-				d.handleDataChange(x)
+				d.HandleDataChange(x)
 			}
 		}
 	}
 }
 
-// ClientCloser interface gives us possibility to mock opcua client and its closing function.
+// ClientState interface gives us possibility to mock opcua client functions returning a desired state.
+type ClientState interface {
+	State() opcua.ConnState
+}
+
+// ClientCloser interface gives us possibility to mock opcua client functions for closing a client in tests.
 type ClientCloser interface {
 	Close() error
 }
 
-// SubscriptionCanceller interface gives us possibility to mock a opcua subscription and its cancel function.
+// SubscriptionCanceller interface gives us possibility to mock opcua client functions for cling a client in tests.
 type SubscriptionCanceller interface {
 	Cancel(ctx context.Context) error
 }
 
 // CloseClient tries to close the client connection
-func closeClient(d *Driver, client ClientCloser) error {
+func CloseClient(d *Driver, client ClientCloser) error {
 	err := client.Close()
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to close OPCUA client connection., %s", err)
@@ -116,8 +124,8 @@ func closeClient(d *Driver, client ClientCloser) error {
 	return err
 }
 
-// cancelSubscription cancel the subscription
-func cancelSubscription(d *Driver, cancel SubscriptionCanceller, ctx context.Context) error {
+// CancelSubscription cancel the subscription
+func CancelSubscription(d *Driver, cancel SubscriptionCanceller, ctx context.Context) error {
 	err := cancel.Cancel(ctx)
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to cancel subscription., %s", err)
@@ -125,40 +133,45 @@ func cancelSubscription(d *Driver, cancel SubscriptionCanceller, ctx context.Con
 	return err
 }
 
-// checkClientState Periodically checks the client state for connection issues.
-func checkClientState(d *Driver, client *opcua.Client) {
+// InitCheckClientState Periodically checks the client state for connection issues.
+func InitCheckClientState(d *Driver, client ClientState) {
 
 	// set to default values to avoid errors when client is nil
-	lastState := opcua.Closed
-	actualState := opcua.Closed
+	LastClientState = opcua.Closed
+	ActualClientState = opcua.Closed
 	for {
-		if client != nil {
-			actualState = client.State()
-			if (lastState == opcua.Connected || actualState == opcua.Disconnected) && lastState != actualState {
-				// if you are coming from connected (last state) then log warning
-				d.Logger.Warnf("opc ua client is in connection state: Disconnected")
-			} else if actualState == opcua.Connected && lastState != actualState {
-				// if you are in disconnected (actual state) then log info
-				d.Logger.Infof("opc ua client is in connection state: Connected")
-			} else if actualState == opcua.Reconnecting && actualState == lastState {
-				// if you actual and last state are reconnecting, inform the user that the reconnect is still being tried.
-				d.Logger.Infof("opc ua client is in connection state: Reconnecting")
-			}
-		}
+		// separated into a function for better testability
+		HandleCurrentClientState(d, client)
 		// use configured interval
-		time.Sleep(time.Duration(d.serviceConfig.OPCUAServer.ConnRetryWaitTime) * time.Second)
-		lastState = actualState
+		time.Sleep(time.Duration(d.ServiceConfig.OPCUAServer.ConnRetryWaitTime) * time.Second)
 	}
 }
 
-func (d *Driver) getClient(device models.Device) (*opcua.Client, error) {
-	opts, err := d.createClientOptions()
+func HandleCurrentClientState(d *Driver, client ClientState) {
+	if client != nil {
+		ActualClientState = client.State()
+		if (LastClientState == opcua.Connected || ActualClientState == opcua.Disconnected) && LastClientState != ActualClientState {
+			// if you are coming from connected (last state) then log warning
+			d.Logger.Warnf("opc ua client is in connection state: Disconnected")
+		} else if ActualClientState == opcua.Connected && LastClientState != ActualClientState {
+			// if you are in disconnected (actual state) then log info
+			d.Logger.Infof("opc ua client is in connection state: Connected")
+		} else if ActualClientState == opcua.Reconnecting && ActualClientState == LastClientState {
+			// if you actual and last state are reconnecting, inform the user that the reconnect is still being tried.
+			d.Logger.Infof("opc ua client is in connection state: Reconnecting")
+		}
+		LastClientState = ActualClientState
+	}
+}
+
+func (d *Driver) GetClient(device models.Device) (*opcua.Client, error) {
+	opts, err := d.CreateClientOptions()
 	if err != nil {
 		d.Logger.Warnf("Driver.getClient: Failed to create OPCUA client options, %s", err)
 		return nil, err
 	}
 
-	return opcua.NewClient(d.serviceConfig.OPCUAServer.Endpoint, opts...), nil
+	return opcua.NewClient(d.ServiceConfig.OPCUAServer.Endpoint, opts...), nil
 }
 
 func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, deviceName string) error {
@@ -177,7 +190,7 @@ func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, dev
 			return fmt.Errorf("[Incoming listener] Unable to find device resource with name %s", node)
 		}
 
-		opcuaNodeID, err := getNodeID(deviceResource.Attributes, NODE)
+		opcuaNodeID, err := GetNodeID(deviceResource.Attributes, NODE)
 		if err != nil {
 			return err
 		}
@@ -203,21 +216,21 @@ func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, dev
 	return nil
 }
 
-func (d *Driver) handleDataChange(dcn *ua.DataChangeNotification) {
+func (d *Driver) HandleDataChange(dcn *ua.DataChangeNotification) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	for _, item := range dcn.MonitoredItems {
 		data := item.Value.Value.Value()
 		value := item.Value.Value
 		nodeName := d.resourceMap[item.ClientHandle]
-		if err := d.onIncomingDataReceived(data, nodeName, value); err != nil {
+		if err := d.OnIncomingDataReceived(data, nodeName, value); err != nil {
 			d.Logger.Errorf("%v", err)
 		}
 	}
 }
 
-func (d *Driver) onIncomingDataReceived(data interface{}, nodeResourceName string, value *ua.Variant) error {
-	deviceName := d.serviceConfig.OPCUAServer.DeviceName
+func (d *Driver) OnIncomingDataReceived(data interface{}, nodeResourceName string, value *ua.Variant) error {
+	deviceName := d.ServiceConfig.OPCUAServer.DeviceName
 	reading := data
 
 	ds := service.RunningService()
@@ -236,9 +249,9 @@ func (d *Driver) onIncomingDataReceived(data interface{}, nodeResourceName strin
 		Type:               deviceResource.Properties.ValueType,
 	}
 
-	result, err := newResult(req, reading)
+	result, err := NewResult(req, reading)
 
-	sourceTimestamp := extractSourceTimestamp(value.DataValue())
+	sourceTimestamp := ExtractSourceTimestamp(value.DataValue())
 	result.Tags["source timestamp"] = sourceTimestamp.String()
 
 	if err != nil {

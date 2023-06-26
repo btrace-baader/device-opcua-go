@@ -4,10 +4,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package driver
+package test
 
 import (
 	"fmt"
+	"github.com/edgexfoundry/device-opcua-go/internal/driver"
 	"github.com/edgexfoundry/device-sdk-go/v2/pkg/models"
 	"github.com/edgexfoundry/go-mod-core-contracts/v2/common"
 	"github.com/gopcua/opcua/ua"
@@ -74,7 +75,7 @@ func TestTimestamps(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := extractSourceTimestamp(&tt.dataValue)
+			result := driver.ExtractSourceTimestamp(&tt.dataValue)
 			if result != tt.want {
 				t.Errorf("Readhandler.ExtractTimestamps = %v, want %v", result, tt.want)
 				return
@@ -90,7 +91,7 @@ func TestNewResult_bool(t *testing.T) {
 		Type:               common.ValueTypeBool,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -107,7 +108,7 @@ func TestNewResult_uint8(t *testing.T) {
 		Type:               common.ValueTypeUint8,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -124,7 +125,7 @@ func TestNewResult_int8(t *testing.T) {
 		Type:               common.ValueTypeInt8,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -141,7 +142,7 @@ func TestNewResultFailed_int8(t *testing.T) {
 		Type:               common.ValueTypeInt8,
 	}
 
-	_, err := newResult(req, reading)
+	_, err := driver.NewResult(req, reading)
 	fmt.Println(err)
 	if err == nil || !strings.Contains(err.Error(), "Reading 256 is out of the value type(Int8)'s range") {
 		t.Errorf("Convert new result should be failed")
@@ -155,7 +156,7 @@ func TestNewResult_uint16(t *testing.T) {
 		Type:               common.ValueTypeUint16,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -172,7 +173,7 @@ func TestNewResult_int16(t *testing.T) {
 		Type:               common.ValueTypeInt16,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -189,7 +190,7 @@ func TestNewResult_uint32(t *testing.T) {
 		Type:               common.ValueTypeUint32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -206,7 +207,7 @@ func TestNewResult_int32(t *testing.T) {
 		Type:               common.ValueTypeInt32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -223,7 +224,7 @@ func TestNewResult_uint64(t *testing.T) {
 		Type:               common.ValueTypeUint64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -240,7 +241,7 @@ func TestNewResult_int64(t *testing.T) {
 		Type:               common.ValueTypeInt64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -269,7 +270,7 @@ func TestNewResult_float32(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			cmdVal, err := newResult(req, testCase.reading)
+			cmdVal, err := driver.NewResult(req, testCase.reading)
 			require.NoError(t, err)
 			result, err := cmdVal.Float32Value()
 			require.NoError(t, err)
@@ -298,7 +299,7 @@ func TestNewResult_float64(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			cmdVal, err := newResult(req, testCase.reading)
+			cmdVal, err := driver.NewResult(req, testCase.reading)
 			require.NoError(t, err)
 			result, err := cmdVal.Float64Value()
 			require.NoError(t, err)
@@ -315,7 +316,7 @@ func TestNewResult_float64ToInt8(t *testing.T) {
 		Type:               common.ValueTypeInt8,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -332,7 +333,7 @@ func TestNewResult_float64ToInt16(t *testing.T) {
 		Type:               common.ValueTypeInt16,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -349,7 +350,7 @@ func TestNewResult_float64ToInt32(t *testing.T) {
 		Type:               common.ValueTypeInt32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -366,7 +367,7 @@ func TestNewResult_float64ToInt64(t *testing.T) {
 		Type:               common.ValueTypeInt64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -383,7 +384,7 @@ func TestNewResult_float64ToUint8(t *testing.T) {
 		Type:               common.ValueTypeUint8,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -400,7 +401,7 @@ func TestNewResult_float64ToUint16(t *testing.T) {
 		Type:               common.ValueTypeUint16,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -417,7 +418,7 @@ func TestNewResult_float64ToUint32(t *testing.T) {
 		Type:               common.ValueTypeUint32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -434,7 +435,7 @@ func TestNewResult_float64ToUint64(t *testing.T) {
 		Type:               common.ValueTypeUint64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -451,7 +452,7 @@ func TestNewResult_float64ToFloat32(t *testing.T) {
 		Type:               common.ValueTypeFloat32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -468,7 +469,7 @@ func TestNewResult_float64ToString(t *testing.T) {
 		Type:               common.ValueTypeString,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -485,7 +486,7 @@ func TestNewResult_string(t *testing.T) {
 		Type:               common.ValueTypeString,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -502,7 +503,7 @@ func TestNewResult_stringToInt64(t *testing.T) {
 		Type:               common.ValueTypeInt64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -519,7 +520,7 @@ func TestNewResult_stringToInt8(t *testing.T) {
 		Type:               common.ValueTypeInt8,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -536,7 +537,7 @@ func TestNewResult_stringToUint8(t *testing.T) {
 		Type:               common.ValueTypeUint8,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -553,7 +554,7 @@ func TestNewResult_stringToUint32(t *testing.T) {
 		Type:               common.ValueTypeUint32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -570,7 +571,7 @@ func TestNewResult_stringToUint64(t *testing.T) {
 		Type:               common.ValueTypeUint64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -587,7 +588,7 @@ func TestNewResult_stringToBool(t *testing.T) {
 		Type:               common.ValueTypeBool,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -604,7 +605,7 @@ func TestNewResult_numberToUint64(t *testing.T) {
 		Type:               common.ValueTypeUint64,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -621,7 +622,7 @@ func TestNewResult_floatNumberToFloat32(t *testing.T) {
 		Type:               common.ValueTypeFloat32,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
@@ -638,7 +639,7 @@ func TestNewResult_numberToString(t *testing.T) {
 		Type:               common.ValueTypeString,
 	}
 
-	cmdVal, err := newResult(req, reading)
+	cmdVal, err := driver.NewResult(req, reading)
 	if err != nil {
 		t.Fatalf("Fail to create new ReadCommand result, %v", err)
 	}
