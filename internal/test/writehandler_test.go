@@ -27,11 +27,10 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 		params     []*sdkModel.CommandValue
 	}
 	tests := []struct {
-		name                    string
-		args                    args
-		createClientOptionsMock func() ([]opcua.Option, error)
-		serviceConfig           config.ServiceConfig
-		wantErr                 bool
+		name          string
+		args          args
+		serviceConfig config.ServiceConfig
+		wantErr       bool
 	}{
 		{
 			name: "NOK - no endpoint defined",
@@ -39,10 +38,6 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 				deviceName: "Test",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
-			},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
 			wantErr:       true,
@@ -53,10 +48,6 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 				deviceName: "Test",
 				protocols:  map[string]models.ProtocolProperties{config.Protocol: {config.Endpoint: Protocol + "unknown"}},
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
-			},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
 			},
 			wantErr: true,
 		},
@@ -76,10 +67,6 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 					Value:              int32(42),
 				}},
 			},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
 			wantErr: true,
 		},
 		{
@@ -97,10 +84,6 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 					Type:               common.ValueTypeString,
 					Value:              "foobar",
 				}},
-			},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
 			wantErr:       true,
@@ -121,17 +104,18 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 					Value:              int32(42),
 				}},
 			},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
 			wantErr:       false,
 		},
 	}
 
 	server := NewServer("../test/opcua_server.py")
-	defer server.Close()
+	defer func(server *Server) {
+		err := server.Close()
+		if err != nil {
+			// do nothing
+		}
+	}(server)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -139,7 +123,12 @@ func TestDriver_HandleWriteCommands(t *testing.T) {
 				Logger: &logger.MockLogger{},
 			}
 			d.ServiceConfig = &tt.serviceConfig
-			driver.CreateClientOptions = tt.createClientOptionsMock
+
+			// mock client options creation here since it is the same for every test
+			driver.CreateClientOptions = func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
+			}
 			if err := d.HandleWriteCommands(tt.args.deviceName, tt.args.protocols, tt.args.reqs, tt.args.params); (err != nil) != tt.wantErr {
 				t.Errorf("Driver.HandleWriteCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}

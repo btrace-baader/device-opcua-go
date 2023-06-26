@@ -51,7 +51,7 @@ def simulate_subscription_failure(parent):
 if __name__ == "__main__":
     server = Server()
     server.set_endpoint("opc.tcp://0.0.0.0:9999/")
-    ns = server.register_namespace("http://gopcua.com/")
+    ns = server.register_namespace("https://gopcua.com/")
 
     simulations = server.nodes.objects.add_object(ua.NodeId("simulations", ns), "simulations")
     fnEven = simulations.add_method(ua.NodeId("simulate_connection_failure", ns), "simulate_connection_failure",

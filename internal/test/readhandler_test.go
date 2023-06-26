@@ -25,12 +25,11 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 		reqs       []sdkModel.CommandRequest
 	}
 	tests := []struct {
-		name                    string
-		args                    args
-		createClientOptionsMock func() ([]opcua.Option, error)
-		serviceConfig           config.ServiceConfig
-		want                    []*sdkModel.CommandValue
-		wantErr                 bool
+		name          string
+		args          args
+		serviceConfig config.ServiceConfig
+		want          []*sdkModel.CommandValue
+		wantErr       bool
 	}{
 		{
 			name: "NOK - no endpoint defined",
@@ -40,12 +39,8 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				reqs:       []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			want:    nil,
-			wantErr: true,
+			want:          nil,
+			wantErr:       true,
 		},
 		{
 			name: "NOK - invalid endpoint defined",
@@ -57,12 +52,8 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				reqs: []sdkModel.CommandRequest{{DeviceResourceName: "TestVar1"}},
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: ""}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			want:    nil,
-			wantErr: true,
+			want:          nil,
+			wantErr:       true,
 		},
 		{
 			name: "NOK - non-existent variable",
@@ -78,12 +69,8 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				}},
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			want:    make([]*sdkModel.CommandValue, 1),
-			wantErr: true,
+			want:          make([]*sdkModel.CommandValue, 1),
+			wantErr:       true,
 		},
 		{
 			name: "NOK - read command - invalid node id",
@@ -99,12 +86,8 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				}},
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			want:    make([]*sdkModel.CommandValue, 1),
-			wantErr: true,
+			want:          make([]*sdkModel.CommandValue, 1),
+			wantErr:       true,
 		},
 		{
 			name: "NOK - method call - invalid node id",
@@ -120,12 +103,8 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				}},
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			want:    make([]*sdkModel.CommandValue, 1),
-			wantErr: true,
+			want:          make([]*sdkModel.CommandValue, 1),
+			wantErr:       true,
 		},
 		{
 			name: "NOK - method call - method does not exist",
@@ -141,12 +120,8 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				}},
 			},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			want:    make([]*sdkModel.CommandValue, 1),
-			wantErr: true,
+			want:          make([]*sdkModel.CommandValue, 1),
+			wantErr:       true,
 		},
 		{
 			name: "OK - read value from mock server",
@@ -168,11 +143,7 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				Tags:               make(map[string]string),
 			}},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			wantErr: false,
+			wantErr:       false,
 		},
 		{
 			name: "OK - call method from mock server",
@@ -194,16 +165,17 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				Tags:               make(map[string]string),
 			}},
 			serviceConfig: config.ServiceConfig{OPCUAServer: config.OPCUAServerConfig{Endpoint: Protocol + Address}},
-			createClientOptionsMock: func() ([]opcua.Option, error) {
-				var opts []opcua.Option
-				return opts, nil
-			},
-			wantErr: false,
+			wantErr:       false,
 		},
 	}
 
 	server := NewServer("../test/opcua_server.py")
-	defer server.Close()
+	defer func(server *Server) {
+		err := server.Close()
+		if err != nil {
+			// do nothing
+		}
+	}(server)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -211,7 +183,12 @@ func TestDriver_HandleReadCommands(t *testing.T) {
 				Logger: &logger.MockLogger{},
 			}
 			d.ServiceConfig = &tt.serviceConfig
-			driver.CreateClientOptions = tt.createClientOptionsMock
+
+			// mock client options creation here since it is the same for every test
+			driver.CreateClientOptions = func() ([]opcua.Option, error) {
+				var opts []opcua.Option
+				return opts, nil
+			}
 			got, err := d.HandleReadCommands(tt.args.deviceName, tt.args.protocols, tt.args.reqs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Driver.HandleReadCommands() error = %v, wantErr %v", err, tt.wantErr)

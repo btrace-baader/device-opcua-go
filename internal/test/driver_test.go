@@ -108,7 +108,7 @@ func TestDriver_UpdateDevice(t *testing.T) {
 func TestDriver_CreateClientOptions(t *testing.T) {
 	tests := []struct {
 		name                 string
-		getter               func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error)
+		getEndpointsMock     func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error)
 		certAndKeyReaderMock func(clientCertFileName, clientKeyFileName string) ([]byte, []byte, error)
 		certKeyPairMock      func(certPEMBlock []byte, keyPEMBlock []byte) (tls.Certificate, error)
 		serviceConfig        config.ServiceConfig
@@ -117,18 +117,9 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 	}{
 		{
 			name: "OK - options created successfully",
-			getter: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
+			getEndpointsMock: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
 				var endpoints []*ua.EndpointDescription
-				ep := &ua.EndpointDescription{
-					EndpointURL:         "",
-					Server:              nil,
-					ServerCertificate:   nil,
-					SecurityMode:        0,
-					SecurityPolicyURI:   "",
-					UserIdentityTokens:  nil,
-					TransportProfileURI: "",
-					SecurityLevel:       0,
-				}
+				ep := &ua.EndpointDescription{}
 				endpoints = append(endpoints, ep)
 				return endpoints, nil
 			},
@@ -151,7 +142,7 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 		},
 		{
 			name: "NOK - options not created when endpoints cannot be fetched",
-			getter: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
+			getEndpointsMock: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
 				return nil, errors.New("random endpoint error")
 			},
 			expectedResultLength: 0,
@@ -159,18 +150,9 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 		},
 		{
 			name: "OK - options created correctly with no security policy",
-			getter: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
+			getEndpointsMock: func(ctx context.Context, endpoint string, opt ...opcua.Option) ([]*ua.EndpointDescription, error) {
 				var endpoints []*ua.EndpointDescription
-				ep := &ua.EndpointDescription{
-					EndpointURL:         "",
-					Server:              nil,
-					ServerCertificate:   nil,
-					SecurityMode:        0,
-					SecurityPolicyURI:   "",
-					UserIdentityTokens:  nil,
-					TransportProfileURI: "",
-					SecurityLevel:       0,
-				}
+				ep := &ua.EndpointDescription{}
 				endpoints = append(endpoints, ep)
 				return endpoints, nil
 			},
@@ -185,20 +167,13 @@ func TestDriver_CreateClientOptions(t *testing.T) {
 				Logger: &logger.MockLogger{},
 			}
 			d.ServiceConfig = &tt.serviceConfig
-			driver.GetEndpoints = tt.getter
+			driver.GetEndpoints = tt.getEndpointsMock
 			driver.ReadCertAndKey = tt.certAndKeyReaderMock
 			driver.CertKeyPair = tt.certKeyPairMock
+
+			// can be mocked here since it is the same for every test
 			driver.SelectEndPoint = func(endpoints []*ua.EndpointDescription, policy string, mode ua.MessageSecurityMode) *ua.EndpointDescription {
-				description := &ua.EndpointDescription{
-					EndpointURL:         "",
-					Server:              nil,
-					ServerCertificate:   nil,
-					SecurityMode:        0,
-					SecurityPolicyURI:   "",
-					UserIdentityTokens:  nil,
-					TransportProfileURI: "",
-					SecurityLevel:       0,
-				}
+				description := &ua.EndpointDescription{}
 				return description
 			}
 			opts, err := d.CreateClientOptions()
