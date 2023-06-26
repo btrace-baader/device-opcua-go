@@ -22,10 +22,9 @@
 
 // https://github.com/gopcua/opcua/blob/affd2bf105fe37786d69cd3607b5f7ed085f8c90/uatest/server.go
 
-package driver
+package test
 
 import (
-	"github.com/edgexfoundry/device-opcua-go/internal/test"
 	"net"
 	"os"
 	"os/exec"
@@ -85,7 +84,7 @@ func (s *Server) Run() error {
 	s.cmd = exec.Command(py, path)
 	s.cmd.Stdout = os.Stdout
 	s.cmd.Stderr = os.Stderr
-	s.Endpoint = test.Protocol + test.Address
+	s.Endpoint = Protocol + Address
 	s.Opts = []opcua.Option{opcua.SecurityMode(ua.MessageSecurityModeNone)}
 	if err := s.cmd.Start(); err != nil {
 		return err
@@ -97,7 +96,7 @@ func (s *Server) Run() error {
 	go func() {
 		deadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(deadline) {
-			c, err := net.Dial("tcp", test.Address)
+			c, err := net.Dial("tcp", Address)
 			if err != nil {
 				time.Sleep(100 * time.Millisecond)
 				continue

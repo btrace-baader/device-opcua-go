@@ -2,7 +2,6 @@ package test
 
 import (
 	"context"
-	"github.com/edgexfoundry/device-opcua-go/internal/driver"
 	"testing"
 	"time"
 
@@ -22,7 +21,7 @@ const (
 func TestAutoReconnection(t *testing.T) {
 	ctx := context.Background()
 
-	srv := driver.NewServer("reconnection_server.py")
+	srv := NewServer("reconnection_server.py")
 	defer srv.Close()
 
 	c := opcua.NewClient(srv.Endpoint, srv.Opts...)
