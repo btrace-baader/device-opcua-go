@@ -22,6 +22,7 @@ import (
 
 var LastClientState opcua.ConnState
 var ActualClientState opcua.ConnState
+var basicErrorMessage = "[Incoming listener] unable to get running device service"
 
 func (d *Driver) StartSubscriptionListener() error {
 
@@ -43,7 +44,7 @@ func (d *Driver) StartSubscriptionListener() error {
 
 	ds := service.RunningService()
 	if ds == nil {
-		return fmt.Errorf("[Incoming listener] unable to get running device service")
+		return fmt.Errorf(basicErrorMessage)
 	}
 
 	device, err := ds.GetDeviceByName(deviceName)
@@ -57,10 +58,10 @@ func (d *Driver) StartSubscriptionListener() error {
 	}
 
 	if err = client.Connect(ctx); err != nil {
-		d.Logger.Warnf("[Incoming listener] Failed to connect OPCUA client, %s", err)
+		d.Logger.Warnf(basicErrorMessage, "%s", err)
 		return err
 	}
-	defer CloseClient(d, client)
+	defer CloseClientConnection(d, client)
 
 	notifyCh := make(chan *opcua.PublishNotificationData)
 
@@ -91,10 +92,10 @@ func (d *Driver) StartSubscriptionListener() error {
 				d.Logger.Debug(res.Error.Error())
 				continue
 			}
-			switch x := res.Value.(type) {
+			switch changeNotification := res.Value.(type) {
 			// result type: DateChange StatusChange
 			case *ua.DataChangeNotification:
-				d.HandleDataChange(x)
+				d.HandleDataChange(changeNotification)
 			}
 		}
 	}
@@ -115,8 +116,8 @@ type SubscriptionCanceller interface {
 	Cancel(ctx context.Context) error
 }
 
-// CloseClient tries to close the client connection
-func CloseClient(d *Driver, client ClientCloser) error {
+// CloseClientConnection tries to close the client connection
+func CloseClientConnection(d *Driver, client ClientCloser) error {
 	err := client.Close()
 	if err != nil {
 		d.Logger.Warnf("[Incoming listener] Failed to close OPCUA client connection., %s", err)
@@ -178,7 +179,7 @@ func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, dev
 	d.Logger.Infof("[Incoming listener] Start configuring for resources.", resources)
 	ds := service.RunningService()
 	if ds == nil {
-		return fmt.Errorf("[Incoming listener] unable to get running device service")
+		return fmt.Errorf(basicErrorMessage)
 	}
 
 	d.mu.Lock()
@@ -235,7 +236,7 @@ func (d *Driver) OnIncomingDataReceived(data interface{}, nodeResourceName strin
 
 	ds := service.RunningService()
 	if ds == nil {
-		return fmt.Errorf("[Incoming listener] unable to get running device service")
+		return fmt.Errorf(basicErrorMessage)
 	}
 
 	deviceResource, ok := ds.DeviceResource(deviceName, nodeResourceName)

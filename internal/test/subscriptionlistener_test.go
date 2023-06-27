@@ -144,7 +144,7 @@ func TestCloseClient(t *testing.T) {
 			d := driver.NewProtocolDriver().(*driver.Driver)
 			d.Logger = logger.MockLogger{}
 			d.ServiceConfig = &config.ServiceConfig{}
-			err := driver.CloseClient(d, tt.closer)
+			err := driver.CloseClientConnection(d, tt.closer)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Driver.getClient() error = %v, wantErr %v", err, tt.wantErr)
 				return
