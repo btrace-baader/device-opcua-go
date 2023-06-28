@@ -172,12 +172,12 @@ func TestDriverHandleReadCommands(t *testing.T) {
 				Logger: &logger.MockLogger{},
 			}
 			d.ServiceConfig = &tt.serviceConfig
-
-			// mock client options creation here since it is the same for every test
-			driver.CreateClientOptions = func() ([]opcua.Option, error) {
+			driver.ClientOptions = func() ([]opcua.Option, error) {
 				var opts []opcua.Option
 				return opts, nil
 			}
+
+			// mock client options creation here since it is the same for every test
 			got, err := d.HandleReadCommands(tt.args.deviceName, tt.args.protocols, tt.args.reqs)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Driver.HandleReadCommands() error = %v, wantErr %v", err, tt.wantErr)

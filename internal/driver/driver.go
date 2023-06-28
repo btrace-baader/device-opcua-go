@@ -120,11 +120,6 @@ func (d *Driver) Initialize(lc logger.LoggingClient, asyncCh chan<- *sdkModel.As
 	return nil
 }
 
-// CreateClientOptions capsules the containing method for easy mocking in unit tests
-var (
-	CreateClientOptions = driver.CreateClientOptions
-)
-
 // GetEndpoints capsules the containing method for easy mocking in unit tests
 var (
 	GetEndpoints = opcua.GetEndpoints
@@ -143,6 +138,14 @@ var (
 // CertKeyPair capsules the containing method for easy mocking in unit tests
 var (
 	CertKeyPair = tls.X509KeyPair
+)
+
+func CreateClientOptionsWrapper() ([]opcua.Option, error) {
+	return driver.CreateClientOptions()
+}
+
+var (
+	ClientOptions = CreateClientOptionsWrapper
 )
 
 func readClientCertAndPrivateKey(clientCertFileName, clientKeyFileName string) ([]byte, []byte, error) {

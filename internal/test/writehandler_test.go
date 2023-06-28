@@ -39,6 +39,7 @@ func TestDriverHandleWriteCommands(t *testing.T) {
 		name          string
 		args          args
 		serviceConfig config.ServiceConfig
+		optionsMock   func() ([]opcua.Option, error)
 		wantErr       bool
 	}{
 		{
@@ -118,13 +119,11 @@ func TestDriverHandleWriteCommands(t *testing.T) {
 			d := &driver.Driver{
 				Logger: &logger.MockLogger{},
 			}
-			d.ServiceConfig = &tt.serviceConfig
-
-			// mock client options creation here since it is the same for every test
-			driver.CreateClientOptions = func() ([]opcua.Option, error) {
+			driver.ClientOptions = func() ([]opcua.Option, error) {
 				var opts []opcua.Option
 				return opts, nil
 			}
+			d.ServiceConfig = &tt.serviceConfig
 			if err := d.HandleWriteCommands(tt.args.deviceName, tt.args.protocols, tt.args.reqs, tt.args.params); (err != nil) != tt.wantErr {
 				t.Errorf("Driver.HandleWriteCommands() error = %v, wantErr %v", err, tt.wantErr)
 			}

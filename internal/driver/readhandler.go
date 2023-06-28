@@ -23,7 +23,7 @@ func (d *Driver) HandleReadCommands(deviceName string, protocols map[string]mode
 
 	d.Logger.Debugf("Driver.HandleReadCommands: protocols: %v resource: %v attributes: %v", protocols, reqs[0].DeviceResourceName, reqs[0].Attributes)
 
-	opts, err := CreateClientOptions()
+	opts, err := ClientOptions()
 	if err != nil {
 		d.Logger.Warnf("Driver.HandleReadCommands: Failed to create OPCUA client options, %s", err)
 		return nil, err
