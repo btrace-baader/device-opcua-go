@@ -162,6 +162,8 @@ func HandleCurrentClientState(d *Driver, client ClientState) {
 			d.Logger.Infof("opc ua client is in connection state: Reconnecting")
 		}
 		LastClientState = ActualClientState
+	} else {
+		d.Logger.Warnf("opc ua client is null. Attempting to reconnect.")
 	}
 }
 
