@@ -147,6 +147,7 @@ func InitCheckClientState(d *Driver, client ClientState) {
 	for {
 		// break this routine if subscription was canceled
 		if subCanceled {
+			d.Logger.Infof("Break connection state checking because subscription was cancelled.")
 			break
 		}
 
