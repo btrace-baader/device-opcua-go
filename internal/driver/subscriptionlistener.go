@@ -77,7 +77,7 @@ func (d *Driver) StartSubscriptionListener() error {
 	// begin continuous client state check
 	go InitCheckClientState(d, client)
 
-	if err = d.configureMonitoredItems(sub, resources, deviceName); err != nil {
+	if err = d.ConfigureMonitoredItems(sub, ds, resources, deviceName); err != nil {
 		return err
 	}
 
@@ -107,6 +107,11 @@ type ClientState interface {
 	State() opcua.ConnState
 }
 
+// RunningService capsules the containing method for easy mocking in unit tests
+var (
+	RunningService = service.RunningService
+)
+
 // ClientCloser interface gives us possibility to mock opcua client functions for closing a client in tests.
 type ClientCloser interface {
 	Close() error
@@ -115,6 +120,11 @@ type ClientCloser interface {
 // SubscriptionCanceller interface gives us possibility to mock opcua client functions for cling a client in tests.
 type SubscriptionCanceller interface {
 	Cancel(ctx context.Context) error
+}
+
+// SubscriptionCanceller interface gives us possibility to mock opcua client functions for cling a client in tests.
+type REsourceGetter interface {
+	DeviceResource(name1 string, name2 string) (models.DeviceResource, bool)
 }
 
 // CloseClientConnection tries to close the client connection
@@ -187,22 +197,18 @@ func (d *Driver) GetClient(device models.Device) (*opcua.Client, error) {
 	return opcua.NewClient(d.ServiceConfig.OPCUAServer.Endpoint, opts...), nil
 }
 
-func (d *Driver) configureMonitoredItems(sub *opcua.Subscription, resources, deviceName string) error {
+func (d *Driver) ConfigureMonitoredItems(sub *opcua.Subscription, reource REsourceGetter, resources, deviceName string) error {
 	d.Logger.Infof("[Incoming listener] Start configuring for resources.", resources)
-	ds := service.RunningService()
-	if ds == nil {
-		return fmt.Errorf(basicErrorMessage)
-	}
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	for i, node := range strings.Split(resources, ",") {
-		deviceResource, ok := ds.DeviceResource(deviceName, node)
+		deviceResource, ok := reource.DeviceResource(deviceName, node)
 		if !ok {
-			// If a resource is missing, skip it so subscriptions for the other resources can run.
-			d.Logger.Infof("[Incoming listener] Unable to find device resource with name %s", node)
-			break
+			// If a resource cannot be found, skip it so subscriptions for the other resources can run.
+			d.Logger.Infof("[Incoming listener] Unable to find device resource with name %s . Please check device profile.", node)
+			continue
 		}
 
 		opcuaNodeID, err := GetNodeID(deviceResource.Attributes, NODE)
