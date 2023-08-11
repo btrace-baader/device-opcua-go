@@ -200,9 +200,9 @@ func (d *Driver) ConfigureMonitoredItems(sub *opcua.Subscription, resources, dev
 	for i, node := range strings.Split(resources, ",") {
 		deviceResource, ok := ds.DeviceResource(deviceName, node)
 		if !ok {
-			// If a resource is missing, skip it so subscriptions for the other resources can run.
-			d.Logger.Infof("[Incoming listener] Unable to find device resource with name %s", node)
-			break
+			// If a resource is not found, skip it so subscriptions for the other resources can run.
+			d.Logger.Infof("[Incoming listener] Unable to find device resource with name %s. Please check the device profile.", node)
+			continue
 		}
 
 		opcuaNodeID, err := GetNodeID(deviceResource.Attributes, NODE)
