@@ -14,7 +14,7 @@ resources:
     - repository: azure-pipeline-template
       type: git
       name: bOne-infrastructure/azure-pipeline-template
-      ref: refs/tags/1.0.2
+      ref: refs/tags/1.1.5
 
 variables:
   - template: vars/variables.yml@azure-pipeline-template
